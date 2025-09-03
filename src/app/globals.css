@@ -119,3 +119,179 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Electric Border Hover effect - variables and layers */
+:root {
+  --electric-border-color: #dd8448;
+  --electric-light-color: oklch(from var(--electric-border-color) l c h);
+  --electric-gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
+}
+
+/* Container for all electric border layers; should sit absolutely over the target */
+.electric-layers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Ensure all child layers inherit rounding and full coverage */
+.electric-layers > * {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+}
+
+/* Main animated stroke with SVG displacement applied on interaction */
+.eb-border {
+  border: 2px solid var(--electric-border-color);
+  margin: -2px; /* pull the stroke outward to align visually to the edge */
+  filter: none;
+  opacity: 0;
+  transition: opacity 300ms ease, filter 300ms ease;
+  will-change: filter, opacity;
+}
+
+/* Subtle glow layers matching original effect */
+.eb-glow-1 {
+  border: 2px solid color-mix(in oklab, var(--electric-border-color) 60%, transparent);
+  filter: blur(1px);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.eb-glow-2 {
+  border: 2px solid var(--electric-light-color);
+  filter: blur(4px);
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+/* Overlay sheens to approximate color-dodge blending from SVG blend */
+.eb-overlay-1,
+.eb-overlay-2 {
+  mix-blend-mode: overlay;
+  transform: scale(1.10);
+  filter: blur(16px);
+  background: linear-gradient(
+    -30deg,
+    white,
+    transparent 30%,
+    transparent 70%,
+    white
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+}
+
+.eb-overlay-2 {
+  opacity: 0; /* will be raised on hover/focus */
+}
+
+/* Background soft glow */
+.eb-background-glow {
+  transform: scale(1.10);
+  filter: blur(32px);
+  opacity: 0;
+  z-index: -1;
+  background: linear-gradient(
+    -30deg,
+    var(--electric-light-color),
+    transparent,
+    var(--electric-border-color)
+  );
+  transition: opacity 300ms ease;
+}
+
+/* Activation states: hover and keyboard focus within */
+.group:hover > .electric-layers .eb-border,
+.group a:focus-visible ~ .electric-layers .eb-border {
+  filter: url(#turbulent-displace);
+  opacity: 1;
+}
+
+.group:hover > .electric-layers .eb-glow-1,
+.group:hover > .electric-layers .eb-glow-2,
+.group:hover > .electric-layers .eb-overlay-1,
+.group:hover > .electric-layers .eb-overlay-2,
+.group:hover > .electric-layers .eb-background-glow,
+.group a:focus-visible ~ .electric-layers .eb-glow-1,
+.group a:focus-visible ~ .electric-layers .eb-glow-2,
+.group a:focus-visible ~ .electric-layers .eb-overlay-1,
+.group a:focus-visible ~ .electric-layers .eb-overlay-2,
+.group a:focus-visible ~ .electric-layers .eb-background-glow {
+  opacity: 1;
+}
+
+/* Optional: if user prefers reduced motion, keep glow but drop displacement animation activation */
+@media (prefers-reduced-motion: reduce) {
+  .group:hover > .electric-layers .eb-border,
+  .group a:focus-visible ~ .electric-layers .eb-border {
+    /* omit the filter to avoid animated turbulence */
+    filter: none;
+  }
+}
+
+/* Accessibility: activate on focus-visible for keyboard users */
+.group:focus-visible > .electric-layers .eb-border {
+  filter: url(#turbulent-displace);
+  opacity: 1;
+}
+
+.group:focus-visible > .electric-layers .eb-glow-1,
+.group:focus-visible > .electric-layers .eb-glow-2,
+.group:focus-visible > .electric-layers .eb-overlay-1,
+.group:focus-visible > .electric-layers .eb-overlay-2,
+.group:focus-visible > .electric-layers .eb-background-glow {
+  opacity: 1;
+}
+
+/* Reduced motion: drop displacement on focus-visible as well */
+@media (prefers-reduced-motion: reduce) {
+  .group:focus-visible > .electric-layers .eb-border {
+    filter: none;
+  }
+}
+
+/* Electric Border - animation enhancements for visible motion */
+@keyframes ebShimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes ebPulse {
+  0% { opacity: 0.25; }
+  50% { opacity: 0.5; }
+  100% { opacity: 0.25; }
+}
+
+/* Prepare overlay backgrounds to animate */
+.electric-layers .eb-overlay-1,
+.electric-layers .eb-overlay-2 {
+  background-size: 200% 100%;
+}
+
+/* Ensure Safari/WebKit recognizes the SVG filter reference */
+.group:hover > .electric-layers .eb-border,
+.group a:focus-visible ~ .electric-layers .eb-border,
+.group:focus-visible > .electric-layers .eb-border {
+  filter: url("#turbulent-displace");
+}
+
+/* Animate sheen and glow layers during hover/focus for clear motion feedback */
+.group:hover > .electric-layers .eb-overlay-1,
+.group a:focus-visible ~ .electric-layers .eb-overlay-1,
+.group:focus-visible > .electric-layers .eb-overlay-1 {
+  animation: ebShimmer 2.6s linear infinite;
+}
+
+.group:hover > .electric-layers .eb-overlay-2,
+.group a:focus-visible ~ .electric-layers .eb-overlay-2,
+.group:focus-visible > .electric-layers .eb-overlay-2 {
+  animation: ebShimmer 3.4s linear infinite;
+}
+
+.group:hover > .electric-layers .eb-background-glow,
+.group a:focus-visible ~ .electric-layers .eb-background-glow,
+.group:focus-visible > .electric-layers .eb-background-glow {
+  animation: ebPulse 4.2s ease-in-out infinite;
+}

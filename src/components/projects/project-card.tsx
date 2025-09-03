@@ -1,5 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import ElectricBorderLayers from '@/components/effects/electric-border';
 import { Project } from '@/types';
 
 interface ProjectCardProps {
@@ -16,8 +17,10 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
 
   return (
     <Card
-      className="cursor-pointer hover:shadow-md transition-shadow active:scale-95 min-h-[70px] md:min-h-[140px]"
+      className="relative group cursor-pointer hover:shadow-md transition-shadow active:scale-95 min-h-[70px] md:min-h-[140px] overflow-visible"
       onClick={onClick}
+      role="button"
+      tabIndex={0}
     >
       <CardContent className="p-2 md:px-4 h-full flex flex-col">
         <div className="flex items-start justify-between mb-1 md:mb-3">
@@ -49,6 +52,7 @@ export function ProjectCard({ project, onClick }: ProjectCardProps) {
           )}
         </div>
       </CardContent>
+      <ElectricBorderLayers />
     </Card>
   );
 }

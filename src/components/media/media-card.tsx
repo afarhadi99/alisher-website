@@ -2,6 +2,7 @@ import Image from 'next/image';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ExternalLink } from 'lucide-react';
+import ElectricBorderLayers from '@/components/effects/electric-border';
 import { MediaItem } from '@/types';
 
 interface MediaCardProps {
@@ -20,10 +21,23 @@ export function MediaCard({ media }: MediaCardProps) {
   };
 
   return (
-    <Card className="cursor-pointer hover:shadow-md active:scale-95 transition-all group h-full overflow-hidden p-0">
-      <a href={media.link} target="_blank" rel="noopener noreferrer" className="block h-full">
+    <Card className="relative group cursor-pointer hover:shadow-md active:scale-95 transition-all h-full overflow-visible p-0">
+      <a
+        href={media.link}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="block h-full"
+        onMouseDown={(e) => {
+          // Prevent persistent focus after mouse click
+          (e.currentTarget as HTMLAnchorElement).blur()
+        }}
+        onPointerDown={(e) => {
+          // Extra safeguard for pointer devices
+          (e.currentTarget as HTMLAnchorElement).blur()
+        }}
+      >
         <div className="flex flex-col h-full">
-          <div className="w-full h-1/2 relative flex-shrink-0">
+          <div className="w-full h-1/2 relative flex-shrink-0 rounded-xl overflow-hidden">
             <Image
               src={media.image}
               alt={media.title}
@@ -55,6 +69,7 @@ export function MediaCard({ media }: MediaCardProps) {
           </div>
         </div>
       </a>
+      <ElectricBorderLayers />
     </Card>
   );
 }
