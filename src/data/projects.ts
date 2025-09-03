@@ -243,7 +243,7 @@ export const projects: Project[] = [
     image: '/meetai-screenshot.png',
     link: 'https://app.myllm.news/?ref=producthunt',
     technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Drizzle', 'OpenAI API', 'GetStream API'],
-    status: 'completed',
+    status: 'in-progress',
     categories: ['frontend', 'ai'],
     date: new Date('2025-10-01'),
     featured: true,

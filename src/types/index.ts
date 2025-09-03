@@ -22,7 +22,7 @@ export interface MediaItem {
   longDescription: string;
   image: string;
   link: string;
-  type: 'article' | 'video' | 'podcast' | 'interview' | 'talk';
+  type: 'article' | 'video' | 'podcast' | 'interview' | 'talk' | 'event' | 'livestream';
   platform: string;
   publishedDate: Date;
   featured: boolean;
