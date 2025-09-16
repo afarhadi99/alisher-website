@@ -122,7 +122,7 @@
 
 /* Electric Border Hover effect - variables and layers */
 :root {
-  --electric-border-color: #dd8448;
+  --electric-border-color: #77dfe6;
   --electric-light-color: oklch(from var(--electric-border-color) l c h);
   --electric-gradient-color: oklch(from var(--electric-border-color) 0.3 calc(c / 2) h / 0.4);
 }
@@ -148,7 +148,7 @@
   margin: -2px; /* pull the stroke outward to align visually to the edge */
   filter: none;
   opacity: 0;
-  transition: opacity 300ms ease, filter 300ms ease;
+  transition: opacity 600ms linear, filter 600ms linear;
   will-change: filter, opacity;
 }
 
@@ -157,14 +157,14 @@
   border: 2px solid color-mix(in oklab, var(--electric-border-color) 60%, transparent);
   filter: blur(1px);
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 600ms linear;
 }
 
 .eb-glow-2 {
   border: 2px solid var(--electric-light-color);
   filter: blur(4px);
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 600ms linear;
 }
 
 /* Overlay sheens to approximate color-dodge blending from SVG blend */
@@ -181,7 +181,7 @@
     white
   );
   opacity: 0;
-  transition: opacity 300ms ease;
+  transition: opacity 600ms linear;
 }
 
 .eb-overlay-2 {
@@ -200,7 +200,7 @@
     transparent,
     var(--electric-border-color)
   );
-  transition: opacity 300ms ease;
+  transition: opacity 600ms linear;
 }
 
 /* Activation states: hover and keyboard focus within */
@@ -281,17 +281,17 @@
 .group:hover > .electric-layers .eb-overlay-1,
 .group a:focus-visible ~ .electric-layers .eb-overlay-1,
 .group:focus-visible > .electric-layers .eb-overlay-1 {
-  animation: ebShimmer 2.6s linear infinite;
+  animation: ebShimmer 3s linear infinite;
 }
 
 .group:hover > .electric-layers .eb-overlay-2,
 .group a:focus-visible ~ .electric-layers .eb-overlay-2,
 .group:focus-visible > .electric-layers .eb-overlay-2 {
-  animation: ebShimmer 3.4s linear infinite;
+  animation: ebShimmer 3s linear infinite;
 }
 
 .group:hover > .electric-layers .eb-background-glow,
 .group a:focus-visible ~ .electric-layers .eb-background-glow,
 .group:focus-visible > .electric-layers .eb-background-glow {
-  animation: ebPulse 4.2s ease-in-out infinite;
+  animation: ebPulse 3s linear infinite;
 }
