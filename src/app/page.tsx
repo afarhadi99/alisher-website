@@ -1,5 +1,6 @@
 import { ProjectsSection } from '@/components/projects/projects-section';
 import { MediaSection } from '@/components/media/media-section';
+import Profile from '@/components/Profile/Profile';
 
 export default function Home() {
   return (
@@ -83,13 +84,7 @@ export default function Home() {
       <div className="hidden lg:grid grid-cols-12 h-full gap-6 p-6">
         {/* Left Column - Profile (Desktop only) */}
         <div className="col-span-3 bg-card rounded-lg border p-4">
-          <div className="h-full flex items-center justify-center text-muted-foreground">
-            <div className="text-center">
-              <div className="w-24 h-24 rounded-full bg-muted mx-auto mb-4"></div>
-              <p className="text-sm">Profile section</p>
-              <p className="text-xs">(Coming soon)</p>
-            </div>
-          </div>
+          <Profile />
         </div>
 
         {/* Middle Column - Projects */}
