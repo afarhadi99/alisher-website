@@ -309,6 +309,12 @@ let pendingZoomBounds = null;
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
       renderer.xr.enabled = true;
+// Make canvas fully transparent so it blends with the page background
+renderer.setClearColor(0x000000, 0); // [WebGLRenderer.setClearColor(color, alpha)](three.js-master/docs/api/en/renderers/WebGLRenderer.html:613)
+if (typeof renderer.setClearAlpha === 'function') {
+  renderer.setClearAlpha(0); // [WebGLRenderer.clearAlpha](three.js-master/docs/api/en/renderers/WebGLRenderer.html:301)
+}
+renderer.domElement.style.background = 'transparent';
 
 
       // High fidelity renderer settings
@@ -745,8 +751,8 @@ window.addEventListener('focus', focusHandler);
                 controls.enabled = false;
               }
             } else if (state === 'showcase') {
-              // Continue cycling only when pointer is off-screen and page visible
-              if (!isPointerInWindow && isPageVisible) {
+              // Continue cycling while pointer is off-screen; loop until cursor returns
+              if (!isPointerInWindow) {
                 console.log('Advancing showcase.');
                 advanceShowcase();
               } else {
