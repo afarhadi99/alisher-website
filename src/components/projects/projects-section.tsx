@@ -18,7 +18,7 @@ export function ProjectsSection() {
   // Responsive pagination - mobile shows 3, tablet shows 3, desktop shows 4
   const getItemsPerPage = () => {
     if (typeof window !== 'undefined') {
-      if (window.innerWidth < 768) return 2; // mobile
+      if (window.innerWidth < 768) return 1; // mobile
       if (window.innerWidth < 1024) return 2; // tablet (both orientations)
       return 4; // desktop
     }

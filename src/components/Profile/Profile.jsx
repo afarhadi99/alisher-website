@@ -25,12 +25,13 @@ const Profile = () => {
         // Staged camera + interaction state
         farDistance = 0, nearDistance = 0,
         waveLoopCount = 0,
-        dollyActive = false, dollyStartMs = 0, dollyDurationMs = 2200,
+        dollyActive = false, dollyStartMs = 0, dollyDurationMs = 5200,
         dollyFrom = new THREE.Vector3(), dollyLookAtStart = new THREE.Vector3(),
         pointer = new THREE.Vector2(0, 0), // normalized [-1, 1] in viewport space
         windowMoveHandler = null,
         cursorFollow = false;
     const clock = new THREE.Clock();
+    let originalFarDistance = 0;
 // Animation state and interaction flags
 let actions = {};
 let currentAction = null;
@@ -48,13 +49,62 @@ let pointerWindowLeaveHandler = null;
 let visibilityHandler = null;
 let blurHandler = null;
 let focusHandler = null;
+let pointerOverHandler = null;
+let pointerOutHandler = null;
     // Smoothly blend gaze target: 1 = cursor target, 0 = camera target
     let lookBlend = 1;
+    // Enable interactions only after intro (wave → dolly) completes
+    let interactionsEnabled = false;
+    // Canonical zoom targets (captured once):
+    // - zoomOutDistanceCanonical: distance at initial framing BEFORE wave/dolly
+    // - zoomInDistanceCanonical: distance at the end of the intro dolly AFTER wave
+    let zoomOutDistanceCanonical = 0;
+    let zoomInDistanceCanonical = 0;
+
+    // Dolly-zoom configuration (true vertigo effect)
+    const FOV_MIN = 20; // deg
+    const FOV_MAX = 65; // deg
+    const FOV_RESTORE_MS = 1800; // smoother return of FOV to baseline after effect
+// Pointer-driven zoom duration (no-delay but smooth)
+const POINTER_ZOOM_MS = 1800;
+
+// Cancel any in-flight camera transitions to remove perceived delay
+function cancelCameraTransitions() {
+  if (dollyActive) {
+    dollyActive = false;
+    if (controls) controls.enabled = true;
+  }
+  zoomTweenActive = false;
+  fovTweenActive = false;
+  pendingZoomTarget = null;
+  pendingZoomBounds = null;
+  pendingZoomOptions = null;
+}
+
+    // Post-wave dolly-zoom base (captured at dolly start)
+    let dollyBaseFovDeg = 0;
+    let dollyBaseDist = 0;
+    let dollyK = 0; // K = d0 * tan(fov0/2)
+
+    // Zoom tween dolly-zoom options/state
+    let zoomDollyZoomEnabled = false;
+    let zoomRestoreFovAfter = true;
+    let zoomBaseFovDeg = 0;
+    let zoomBaseDist = 0;
+    let zoomK = 0;
+
+    // Generic FOV tween (used to restore after dolly-zoom)
+    let fovTweenActive = false, fovStartMs = 0, fovDurationMs = 0, fovFromDeg = 0, fovToDeg = 0;
+
+    // When zoom tween is deferred during dolly, also preserve its options
+    let pendingZoomOptions = null;
 // Hoisted state and animation helpers (prevent ReferenceError in off-screen handlers)
 function setState(next) {
-  console.log(`State change: ${state} -> ${next}`);
   state = next;
 }
+// Feature flag: disable post-processing to preserve canvas transparency
+// Full-screen passes like BokehPass often output opaque pixels, causing a black quad.
+const ENABLE_POSTFX = false;
 
 // Shared showcase sequence
 const showcaseKeys = ['arm-stretch', 'happy-idle', 'headshake', 'sad-idle', 'spin', 'thankful', 'fishing-cast'];
@@ -92,6 +142,16 @@ function playShowcaseByIndex(i) {
   a.setLoop(THREE.LoopOnce, 1);
   a.clampWhenFinished = true;
 
+  // Ensure zoom-out to showcase framing (with dolly-zoom)
+  if (zoomOutDistanceCanonical > 0) {
+    startZoomTween(
+      zoomOutDistanceCanonical,
+      POINTER_ZOOM_MS,
+      { min: zoomOutDistanceCanonical * 0.9, max: zoomOutDistanceCanonical * 1.8 },
+      { dollyZoom: true, restoreFov: true, ease: 'linear' }
+    );
+  }
+
   setState('showcase');
   crossfadeTo(key, crossfadeSec);
 }
@@ -115,13 +175,14 @@ function setCameraDistanceTarget(dist, adjustBounds = null) {
   }
 }
 // Smooth zoom tween (cubic ease like the intro dolly)
-function startZoomTween(toDist, durationMs = 1400, adjustBounds = null) {
+function startZoomTween(toDist, durationMs = 1400, adjustBounds = null, options = {}) {
   if (!camera || !controls) return;
 
   // If the intro dolly is still active, defer starting the tween to avoid fighting animations
   if (dollyActive) {
     pendingZoomTarget = toDist;
     pendingZoomBounds = adjustBounds || null;
+    pendingZoomOptions = options || null;
     return;
   }
 
@@ -158,6 +219,21 @@ function startZoomTween(toDist, durationMs = 1400, adjustBounds = null) {
   zoomDurationMs = durationMs;
   zoomFromDist = currentDist;
   zoomToDist = toDist;
+  /** Select easing for this zoom tween (default to linear for immediate response) */
+  zoomEaseMode = (options && options.ease) ? options.ease : 'linear';
+
+  // Dolly-zoom setup (true vertigo)
+  zoomDollyZoomEnabled = !!options.dollyZoom && !(renderer?.xr?.isPresenting);
+  zoomRestoreFovAfter = options.restoreFov !== false; // default true
+  if (zoomDollyZoomEnabled) {
+    zoomBaseFovDeg = camera.fov;
+    zoomBaseDist = currentDist;
+    const baseFovRad = THREE.MathUtils.degToRad(zoomBaseFovDeg);
+    zoomK = zoomBaseDist * Math.tan(baseFovRad / 2);
+  } else {
+    zoomK = 0;
+  }
+
 }
     // Off-screen showcase control and camera auto-zoom
     let showcaseIndex = 0;
@@ -169,6 +245,12 @@ let zoomTweenActive = false, zoomStartMs = 0, zoomDurationMs = 0, zoomFromDist =
 const zoomDir = new THREE.Vector3();
 let pendingZoomTarget = null;
 let pendingZoomBounds = null;
+/**
+ * Current easing mode for zoom tweens.
+ * Default: 'linear' for immediate, constant-speed zooms without perceived start delay.
+ * Supported: 'linear' | 'outCubic' | 'inOutSine'
+ */
+let zoomEaseMode = 'linear';
 
 
     // Smooth tracking state with frame-rate independent damping
@@ -308,14 +390,16 @@ let pendingZoomBounds = null;
       // Renderer
       renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
       renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
-      renderer.xr.enabled = true;
-// Make canvas fully transparent so it blends with the page background
-renderer.setClearColor(0x000000, 0); // [WebGLRenderer.setClearColor(color, alpha)](three.js-master/docs/api/en/renderers/WebGLRenderer.html:613)
-if (typeof renderer.setClearAlpha === 'function') {
-  renderer.setClearAlpha(0); // [WebGLRenderer.clearAlpha](three.js-master/docs/api/en/renderers/WebGLRenderer.html:301)
-}
-renderer.domElement.style.background = 'transparent';
+      // Do NOT enable XR unless we’re actually in mobile AR; XR framebuffers often clear opaque backgrounds
+      renderer.xr.enabled = false;
 
+      // Make canvas fully transparent so it blends with the page background
+      renderer.setClearColor(0x000000, 0); // [WebGLRenderer.setClearColor(color, alpha)](three.js-master/docs/api/en/renderers/WebGLRenderer.html:613)
+      if (typeof renderer.setClearAlpha === 'function') {
+        renderer.setClearAlpha(0); // [WebGLRenderer.clearAlpha](three.js-master/docs/api/en/renderers/WebGLRenderer.html:301)
+      }
+      renderer.domElement.style.background = 'transparent';
+      renderer.domElement.style.backgroundColor = 'transparent';
 
       // High fidelity renderer settings
       renderer.shadowMap.enabled = true;
@@ -330,6 +414,9 @@ renderer.domElement.style.background = 'transparent';
 
       // AR Button
       const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+      if (isMobile) {
+        renderer.xr.enabled = true; // enable XR only on mobile to avoid desktop opaque clears
+      }
 
       // Desktop pointer tracking for cursor-follow relative to the profile container
       if (!isMobile) {
@@ -351,36 +438,62 @@ renderer.domElement.style.background = 'transparent';
 
 pointerWindowEnterHandler = () => {
   isPointerInWindow = true;
+  // Gate pointer enter reactions until intro completes
+  if (!interactionsEnabled) { return; }
+
   // Stop any off-screen cycle and return to idle with smooth crossfade
   if (state !== 'idle' && actions['idle']) {
     setState('idle');
     crossfadeTo('idle', crossfadeSec);
   }
   pendingOffscreenCycle = false;
-  // Smoothly zoom back in to the dolly-in distance (near) after pointer returns (eased like dolly)
-  if (cameraDistBase > 0) {
-    startZoomTween(cameraDistBase, dollyDurationMs, { min: nearDistance * 0.9, max: nearDistance * 1.6 });
+
+  // Instant reaction: cancel in-flight transitions and zoom to a fixed nearDistance
+  cancelCameraTransitions();
+  if (nearDistance > 0) {
+    const targetNear = (zoomInDistanceCanonical > 0 ? zoomInDistanceCanonical : nearDistance);
+    startZoomTween(
+      targetNear,
+      POINTER_ZOOM_MS,
+      { min: targetNear * 0.9, max: targetNear * 1.6 },
+      { dollyZoom: true, restoreFov: true, ease: 'linear' }
+    );
   }
 };
 pointerWindowLeaveHandler = () => {
   isPointerInWindow = false;
-  console.log('Pointer left window. Scheduling showcase cycle.');
-  // Wait 2 seconds, then start cycling showcase animations
-  if (showcaseTimeoutId) clearTimeout(showcaseTimeoutId);
-  showcaseTimeoutId = setTimeout(() => {
-    if (!isPointerInWindow && isPageVisible) {
-      console.log('Starting showcase cycle.');
-      // Zoom back out to the original framed distance for showcase (eased like dolly)
-      if (farDistance > 0) {
-        startZoomTween(farDistance, dollyDurationMs, { min: farDistance * 0.9, max: farDistance * 1.8 });
-      }
-      setState('showcase');
-      advanceShowcase();
+  // Gate pointer leave reactions until intro completes
+  if (!interactionsEnabled) { return; }
+
+  // Cancel any pending timers
+  if (showcaseTimeoutId) {
+    clearTimeout(showcaseTimeoutId);
+    showcaseTimeoutId = null;
+  }
+  // Instant reaction: cancel in-flight transitions and dolly-zoom out to a fixed farDistance
+  if (isPageVisible) {
+    cancelCameraTransitions();
+    if (originalFarDistance > 0) {
+      const targetFar = (zoomOutDistanceCanonical > 0 ? zoomOutDistanceCanonical : originalFarDistance);
+      startZoomTween(
+        targetFar,
+        POINTER_ZOOM_MS,
+        { min: targetFar * 0.9, max: targetFar * 1.8 },
+        { dollyZoom: true, restoreFov: true, ease: 'linear' }
+      );
     }
-  }, 2000);
+    setState('showcase');
+    advanceShowcase();
+  }
 };
 document.addEventListener('mouseenter', pointerWindowEnterHandler);
 document.addEventListener('mouseleave', pointerWindowLeaveHandler);
+
+// Also listen to pointerover/out on window for zero-latency reactions
+pointerOverHandler = (e) => { if (e && e.type === 'pointerover') pointerWindowEnterHandler(); };
+pointerOutHandler = (e) => { if (!e || e.relatedTarget === null) pointerWindowLeaveHandler(); };
+window.addEventListener('pointerover', pointerOverHandler);
+window.addEventListener('pointerout', pointerOutHandler);
 
 // Page/tab visibility and window focus, used to gate tracking toward camera
 isPageVisible = !document.hidden;
@@ -473,24 +586,34 @@ window.addEventListener('focus', focusHandler);
       // Keep background transparent to blend with page; no global fog needed
       scene.fog = null;
 
-      // Post-processing composer for cinematic look
-      composer = new EffectComposer(renderer); // [EffectComposer](three.js-master/docs/examples/en/postprocessing/EffectComposer.html:62)
-      const renderPass = new RenderPass(scene, camera);
-      // Ensure transparent background for proper blending
-      renderPass.clear = true;
-      renderPass.clearAlpha = 0;
-      composer.addPass(renderPass);
+      // Post-processing composer for cinematic look (guarded for transparency)
+      if (ENABLE_POSTFX) {
+        composer = new EffectComposer(renderer); // [EffectComposer](three.js-master/docs/examples/en/postprocessing/EffectComposer.html:62)
+        const renderPass = new RenderPass(scene, camera);
+        // Ensure transparent background for proper blending
+        renderPass.clear = true;
+        renderPass.clearAlpha = 0;
+        composer.addPass(renderPass);
 
-      // Portrait depth-of-field (focus adjusted per-frame to head)
-      bokehPass = new BokehPass(scene, camera, {
-        focus: 1.2,
-        aperture: 0.00025,
-        maxblur: 0.01
-      });
-      composer.addPass(bokehPass);
+        // Portrait depth-of-field (focus adjusted per-frame to head)
+        bokehPass = new BokehPass(scene, camera, {
+          focus: 1.2,
+          aperture: 0.00025,
+          maxblur: 0.01
+        });
+        composer.addPass(bokehPass);
 
-      // Final color/tone mapping output
-      composer.addPass(new OutputPass());
+        // Do not use OutputPass; make last pass render to screen so alpha is preserved
+        if (bokehPass) {
+          bokehPass.renderToScreen = true;
+        } else {
+          renderPass.renderToScreen = true;
+        }
+      } else {
+        // Disable composer entirely to keep the canvas alpha blending with the page
+        composer = null;
+        bokehPass = null;
+      }
 
       // Load Model and Animation
       const gltfLoader = new GLTFLoader();
@@ -580,6 +703,8 @@ window.addEventListener('focus', focusHandler);
             const farVisible = 1.1, nearVisible = 0.58;
             farDistance = Math.max((size.y * farVisible / 2) / Math.tan(fov / 2), 1.0);
             nearDistance = Math.max((size.y * nearVisible / 2) / Math.tan(fov / 2), 0.6);
+            originalFarDistance = farDistance;
+            zoomOutDistanceCanonical = farDistance;
 
             controls.target.copy(headWorld);
             camera.position.set(headWorld.x, headWorld.y + size.y * 0.02, headWorld.z + farDistance);
@@ -594,6 +719,8 @@ window.addEventListener('focus', focusHandler);
             const farVisible = 1.1, nearVisible = 0.58;
             farDistance = Math.max((size.y * farVisible / 2) / Math.tan(fov / 2), 1.0);
             nearDistance = Math.max((size.y * nearVisible / 2) / Math.tan(fov / 2), 0.6);
+            originalFarDistance = farDistance;
+            zoomOutDistanceCanonical = farDistance;
 
             camera.position.set(center.x, controls.target.y, center.z + farDistance);
             camera.lookAt(controls.target);
@@ -714,9 +841,20 @@ window.addEventListener('focus', focusHandler);
 
 
         
-        function returnToIdle() {
+        function returnToIdle(skipZoom = false) {
           setState('idle');
           if (actions['idle']) crossfadeTo('idle', crossfadeSec);
+          // Always go to fixed nearDistance (true set distance), unless explicitly suppressed
+          if (!skipZoom && nearDistance > 0) {
+            cancelCameraTransitions();
+            const targetNearIdle = (zoomInDistanceCanonical > 0 ? zoomInDistanceCanonical : nearDistance);
+            startZoomTween(
+              targetNearIdle,
+              POINTER_ZOOM_MS,
+              { min: targetNearIdle * 0.9, max: targetNearIdle * 1.6 },
+              { dollyZoom: true, restoreFov: true, ease: 'linear' }
+            );
+          }
         }
 
         // Load required clips and start sequence
@@ -737,26 +875,34 @@ window.addEventListener('focus', focusHandler);
           mixerFinishedHandler = (e) => {
             if (!e || !e.action) return;
             
-            // Wave completed: dolly-in, then idle (off-screen cycling is pointer-gated)
+            // Wave completed: dolly-in (true dolly-zoom), then idle (off-screen cycling is pointer-gated)
             if (state === 'intro_wave' && actions['wave'] && e.action === actions['wave']) {
-              returnToIdle();
+              // Skip the idle zoom here to avoid fighting with the upcoming intro dolly-zoom
+              returnToIdle(true);
 
               if (!dollyActive) {
                 const headWorldNow = new THREE.Vector3();
                 if (headBone) headBone.getWorldPosition(headWorldNow); else headWorldNow.copy(controls.target);
                 dollyFrom.copy(camera.position);
                 dollyLookAtStart.copy(headWorldNow);
+
+                // Capture dolly-zoom base (FOV and distance at start)
+                dollyBaseFovDeg = camera.fov;
+                dollyBaseDist = camera.position.distanceTo(headWorldNow);
+                const baseFovRad = THREE.MathUtils.degToRad(dollyBaseFovDeg);
+                dollyK = dollyBaseDist * Math.tan(baseFovRad / 2);
+
                 dollyActive = true;
                 dollyStartMs = performance.now();
+                // Begin a smooth gaze transition toward the cursor during the dolly
+                lookBlend = 0;
                 controls.enabled = false;
               }
             } else if (state === 'showcase') {
               // Continue cycling while pointer is off-screen; loop until cursor returns
               if (!isPointerInWindow) {
-                console.log('Advancing showcase.');
                 advanceShowcase();
               } else {
-                console.log('Returning to idle from showcase.');
                 returnToIdle();
               }
             }
@@ -803,8 +949,32 @@ window.addEventListener('focus', focusHandler);
       bone.quaternion.slerp(qTarget, slerpWeight);
     }
 
-    function easeInOutCubic(t) {
-      return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    // Smoother easing for longer, more cinematic camera moves
+    function easeInOutSine(t) {
+      return -(Math.cos(Math.PI * t) - 1) / 2;
+    }
+    // Snappy start, smooth end (removes perceived delay on pointer-triggered zooms)
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    // Compute FOV that preserves subject size for a given distance using K = d0 * tan(fov0/2)
+    function computeFovFromKAndDistance(K, dist) {
+      if (!isFinite(K) || K <= 0) return camera.fov;
+      const d = Math.max(1e-6, dist);
+      const rad = 2 * Math.atan(K / d);
+      const deg = THREE.MathUtils.radToDeg(rad);
+      return THREE.MathUtils.clamp(deg, FOV_MIN, FOV_MAX);
+    }
+
+    // Tween the camera's FOV back to a baseline value
+    function startFovRestore(toDeg, durationMs = FOV_RESTORE_MS) {
+      if (!camera) return;
+      fovTweenActive = true;
+      fovStartMs = performance.now();
+      fovDurationMs = durationMs;
+      fovFromDeg = camera.fov;
+      fovToDeg = THREE.MathUtils.clamp(toDeg, FOV_MIN, FOV_MAX);
     }
 
     const animate = () => {
@@ -818,24 +988,29 @@ window.addEventListener('focus', focusHandler);
         if (armConstraint) armConstraint.update(delta);
       }
 
-      // Update DOF focus to the head if available and keep head position handy
+      // Update DOF focus (if enabled) and always compute head position for dolly/zoom logic
       let headWorld = null;
-      if (bokehPass && headBone) {
+      if (headBone) {
         headWorld = new THREE.Vector3();
         headBone.getWorldPosition(headWorld);
-        const focus = camera.position.distanceTo(headWorld);
-        if (bokehPass.materialBokeh && bokehPass.materialBokeh.uniforms && bokehPass.materialBokeh.uniforms.focus) {
-          bokehPass.materialBokeh.uniforms.focus.value = focus;
+        // If Bokeh is enabled, update its focus target; otherwise skip
+        if (bokehPass) {
+          const focus = camera.position.distanceTo(headWorld);
+          if (bokehPass.materialBokeh && bokehPass.materialBokeh.uniforms && bokehPass.materialBokeh.uniforms.focus) {
+            bokehPass.materialBokeh.uniforms.focus.value = focus;
+          }
         }
       }
 
 
-      // Smooth camera dolly-in after the wave loops
-      if (dollyActive && headWorld) {
+      // Smooth camera dolly-in after the wave loops (with true dolly-zoom)
+      if (dollyActive) {
         const elapsed = performance.now() - dollyStartMs;
         const progress = Math.min(1, elapsed / dollyDurationMs);
-        
-        const k = easeInOutCubic(progress);
+        const k = easeInOutSine(progress);
+
+        // Anchor to the head if available, otherwise use current controls target
+        const anchor = (headWorld ? headWorld : controls.target.clone());
 
         const startDistance = dollyFrom.distanceTo(dollyLookAtStart);
         const endDistance = nearDistance > 0 ? nearDistance : startDistance * 0.8;
@@ -843,33 +1018,44 @@ window.addEventListener('focus', focusHandler);
 
         const dir = dollyFrom.clone().sub(dollyLookAtStart).normalize();
         camera.position.copy(dollyLookAtStart).add(dir.multiplyScalar(currentDistance));
-        camera.lookAt(headWorld);
+        camera.lookAt(anchor);
+
+        // Apply FOV compensation unless XR session is active
+        if (!(renderer.xr.isPresenting)) {
+          const fovDeg = computeFovFromKAndDistance(dollyK, currentDistance);
+          if (Math.abs(camera.fov - fovDeg) > 1e-3) {
+            camera.fov = fovDeg;
+            camera.updateProjectionMatrix(); // [PerspectiveCamera.updateProjectionMatrix()](three.js-master/docs/api/en/cameras/PerspectiveCamera.html:1)
+          }
+        }
 
         // Smoothly update controls target during dolly
-        controls.target.lerp(headWorld, k * 0.3);
+        controls.target.lerp(anchor, k * 0.3);
 
         if (progress >= 1) {
           dollyActive = false;
-          // --- FIX: Set min/max distance BEFORE setting camera position ---
+          // Set min/max distance BEFORE setting final camera position
           controls.minDistance = nearDistance * 0.9;
-          controls.maxDistance = nearDistance * 1.6; // Allow further zoom-out post-dolly
+          controls.maxDistance = nearDistance * 1.6;
 
           // Set final camera position and controls target
           const finalDir = dollyFrom.clone().sub(dollyLookAtStart).normalize();
           const finalDistance = nearDistance > 0 ? nearDistance : dollyFrom.distanceTo(dollyLookAtStart) * 0.8;
           const finalPosition = dollyLookAtStart.clone().add(finalDir.multiplyScalar(finalDistance));
           camera.position.copy(finalPosition);
-          controls.target.copy(headWorld);
+          controls.target.copy(anchor);
 
-          // Clamp camera position to allowed range (OrbitControls will do this on update)
+          // Use the actual dolly-in end distance as the new "near" distance baseline
+          nearDistance = finalDistance;
+          zoomInDistanceCanonical = finalDistance;
+
+          // Clamp camera position to allowed range and save state
           controls.update();
-
-          // Save the new state as the controls' baseline to prevent snapping
           if (typeof controls.saveState === 'function') {
             controls.saveState();
           }
 
-          // Now re-enable controls
+          // Re-enable controls
           controls.enabled = true;
 
           // Initialize camera auto-zoom baselines after dolly completes
@@ -878,28 +1064,56 @@ window.addEventListener('focus', focusHandler);
           cameraDistCurrent = camera.position.distanceTo(controls.target);
           cameraDistTarget = cameraDistCurrent;
 
+          // Restore FOV back to baseline after effect (smooth)
+          if (!(renderer.xr.isPresenting)) {
+            startFovRestore(dollyBaseFovDeg, FOV_RESTORE_MS);
+          }
+
           // If a zoom tween was requested while dolly was active, start it now for smoothness
           if (pendingZoomTarget !== null) {
-            startZoomTween(pendingZoomTarget, dollyDurationMs, pendingZoomBounds);
+            startZoomTween(pendingZoomTarget, dollyDurationMs, pendingZoomBounds, pendingZoomOptions || {});
             pendingZoomTarget = null;
             pendingZoomBounds = null;
+            pendingZoomOptions = null;
           }
+
+          // Enable all post-intro interactions (cursor tracking, window enter/leave, showcase)
+          interactionsEnabled = true;
         }
       }
 
 
-      // Smooth camera zoom tween (matches intro dolly easing)
+      // Smooth camera zoom tween (matches intro dolly easing) + optional true dolly-zoom
       if (!dollyActive && zoomTweenActive) {
         const elapsed = performance.now() - zoomStartMs;
         const progress = Math.min(1, elapsed / zoomDurationMs);
-        const k = easeInOutCubic(progress);
+        let k;
+        if (zoomEaseMode === 'inOutSine') {
+          k = easeInOutSine(progress);
+        } else if (zoomEaseMode === 'outCubic') {
+          k = easeOutCubic(progress);
+        } else {
+          // Linear easing: remove perceived start delay
+          k = progress;
+        }
         const dist = THREE.MathUtils.lerp(zoomFromDist, zoomToDist, k);
         const dirToCamTween = camera.position.clone().sub(controls.target).normalize();
         camera.position.copy(controls.target).add(dirToCamTween.multiplyScalar(dist));
         cameraDistCurrent = dist;
         cameraDistTarget = dist;
+
+        // Apply FOV compensation during zoom tween when enabled (and not XR)
+        if (zoomDollyZoomEnabled && !(renderer.xr.isPresenting)) {
+          const fovDeg = computeFovFromKAndDistance(zoomK, dist);
+          if (Math.abs(camera.fov - fovDeg) > 1e-3) {
+            camera.fov = fovDeg;
+            camera.updateProjectionMatrix();
+          }
+        }
+
         if (progress >= 1) {
           zoomTweenActive = false;
+
           // Apply pending bounds only after tween completes to avoid snaps
           if (pendingZoomBounds && typeof pendingZoomBounds === 'object') {
             const { min, max } = pendingZoomBounds;
@@ -907,6 +1121,29 @@ window.addEventListener('focus', focusHandler);
             if (typeof max === 'number') controls.maxDistance = max;
             pendingZoomBounds = null;
           }
+
+          // After dolly-zoom completes, restore FOV if requested
+          if (zoomDollyZoomEnabled && zoomRestoreFovAfter && !(renderer.xr.isPresenting)) {
+            startFovRestore(zoomBaseFovDeg, FOV_RESTORE_MS);
+          }
+          zoomDollyZoomEnabled = false;
+          zoomK = 0;
+
+        }
+      }
+
+      // Smoothly restore FOV if a restore tween is active
+      if (fovTweenActive) {
+        const elapsedFov = performance.now() - fovStartMs;
+        const progressFov = Math.min(1, elapsedFov / Math.max(1, fovDurationMs));
+        const kFov = easeInOutSine(progressFov);
+        const fovNow = THREE.MathUtils.lerp(fovFromDeg, fovToDeg, kFov);
+        if (Math.abs(camera.fov - fovNow) > 1e-3) {
+          camera.fov = THREE.MathUtils.clamp(fovNow, FOV_MIN, FOV_MAX);
+          camera.updateProjectionMatrix();
+        }
+        if (progressFov >= 1) {
+          fovTweenActive = false;
         }
       }
 
@@ -917,9 +1154,10 @@ window.addEventListener('focus', focusHandler);
         const cursorPt = computeCursorTarget(anchor);
         const cameraPt = camera.position;
 
-        const targetLook = (isPointerInWindow && isPageVisible) ? 1 : 0;
+        // Eyes follow the cursor only AFTER the wave has finished AND the dolly-in is complete
+        const desiredLook = (interactionsEnabled && isPointerInWindow && isPageVisible && !dollyActive) ? 1 : 0;
         // Smoothly approach the target blend each frame (higher lambda = faster)
-        lookBlend = THREE.MathUtils.damp(lookBlend, targetLook, 6, delta);
+        lookBlend = THREE.MathUtils.damp(lookBlend, desiredLook, 4, delta);
 
         // Interpolate world-space target between camera and cursor
         blendedTargetPoint.copy(cameraPt);
@@ -932,7 +1170,7 @@ if (!dollyActive && !zoomTweenActive && cameraDistTarget > 0) {
   const dirToCam = camera.position.clone().sub(controls.target).normalize();
   const currentDist = camera.position.distanceTo(controls.target);
   if (cameraDistCurrent === 0) cameraDistCurrent = currentDist;
-  cameraDistCurrent = THREE.MathUtils.damp(cameraDistCurrent, cameraDistTarget, 6, delta);
+  cameraDistCurrent = THREE.MathUtils.damp(cameraDistCurrent, cameraDistTarget, 4, delta);
   camera.position.copy(controls.target).add(dirToCam.multiplyScalar(cameraDistCurrent));
 }
 
@@ -973,10 +1211,10 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
           }
         }
 
-        if (!dollyActive) controls.update();
+        if (!dollyActive && !zoomTweenActive) controls.update();
         renderer.render(scene, camera); // Use direct render in XR
       } else {
-        if (!dollyActive) controls.update();
+        if (!dollyActive && !zoomTweenActive) controls.update();
         if (composer) {
           composer.render(delta); // [EffectComposer.render()](three.js-master/docs/examples/en/postprocessing/EffectComposer.html:136)
         } else {
@@ -1021,6 +1259,14 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
       if (pointerWindowLeaveHandler) {
         document.removeEventListener('mouseleave', pointerWindowLeaveHandler);
         pointerWindowLeaveHandler = null;
+      }
+      if (pointerOverHandler) {
+        window.removeEventListener('pointerover', pointerOverHandler);
+        pointerOverHandler = null;
+      }
+      if (pointerOutHandler) {
+        window.removeEventListener('pointerout', pointerOutHandler);
+        pointerOutHandler = null;
       }
 
       // Page visibility / focus listeners
@@ -1078,7 +1324,12 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
 
       {/* Canvas Section - 3D Model */}
       <div className="flex-1 relative min-h-0">
-        <div ref={mountRef} className="w-full h-full" />
+        {/* Ensure container is transparent so the canvas blends with page */}
+        <div
+          ref={mountRef}
+          className="w-full h-full bg-transparent"
+          style={{ background: 'transparent' }}
+        />
       </div>
 
       {/* Footer Section - Social Media Icons */}
