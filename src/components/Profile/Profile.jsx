@@ -48,8 +48,128 @@ let pointerWindowLeaveHandler = null;
 let visibilityHandler = null;
 let blurHandler = null;
 let focusHandler = null;
-// Smoothly blend gaze target: 1 = cursor target, 0 = camera target
-let lookBlend = 1;
+    // Smoothly blend gaze target: 1 = cursor target, 0 = camera target
+    let lookBlend = 1;
+// Hoisted state and animation helpers (prevent ReferenceError in off-screen handlers)
+function setState(next) {
+  console.log(`State change: ${state} -> ${next}`);
+  state = next;
+}
+
+// Shared showcase sequence
+const showcaseKeys = ['arm-stretch', 'happy-idle', 'headshake', 'sad-idle', 'spin', 'thankful', 'fishing-cast'];
+
+// Crossfade helper following three.js AnimationAction cross-fade pattern
+// See [WebGLRenderer / animation crossfade example](three.js-master/examples/misc_animation_groups.html:1)
+function crossfadeTo(key, duration = crossfadeSec) {
+  const next = actions[key];
+  if (!next) return; // action not ready yet
+  if (currentAction === next) return;
+
+  next.enabled = true;
+  next.reset();
+  next.setEffectiveTimeScale(1);
+  next.setEffectiveWeight(1);
+
+  if (currentAction) {
+    currentAction.crossFadeTo(next, duration, true);
+  } else {
+    next.fadeIn(duration);
+  }
+  next.play();
+  currentAction = next;
+}
+
+function playShowcaseByIndex(i) {
+  const ready = showcaseKeys.filter((k) => actions[k]);
+  if (ready.length === 0) return;
+
+  const key = ready[i % ready.length];
+  const a = actions[key];
+  if (!a) return;
+
+  // Ensure one-shot playback and clamp on finish
+  a.setLoop(THREE.LoopOnce, 1);
+  a.clampWhenFinished = true;
+
+  setState('showcase');
+  crossfadeTo(key, crossfadeSec);
+}
+
+function advanceShowcase() {
+  showcaseIndex = (showcaseIndex + 1) % showcaseKeys.length;
+  playShowcaseByIndex(showcaseIndex);
+}
+
+// Helper to smoothly target a new camera distance with optional OrbitControls bounds
+function setCameraDistanceTarget(dist, adjustBounds = null) {
+  cameraDistTarget = dist;
+  if (camera && controls) {
+    // Restart damping from current distance to avoid jumps
+    cameraDistCurrent = camera.position.distanceTo(controls.target);
+    if (adjustBounds && typeof adjustBounds === 'object') {
+      const { min, max } = adjustBounds;
+      if (typeof min === 'number') controls.minDistance = min;
+      if (typeof max === 'number') controls.maxDistance = max;
+    }
+  }
+}
+// Smooth zoom tween (cubic ease like the intro dolly)
+function startZoomTween(toDist, durationMs = 1400, adjustBounds = null) {
+  if (!camera || !controls) return;
+
+  // If the intro dolly is still active, defer starting the tween to avoid fighting animations
+  if (dollyActive) {
+    pendingZoomTarget = toDist;
+    pendingZoomBounds = adjustBounds || null;
+    return;
+  }
+
+  const currentDist = camera.position.distanceTo(controls.target);
+  const goingOutward = toDist > currentDist;
+  const goingInward = toDist < currentDist;
+
+  // Prepare bounds to avoid OrbitControls clamping during tween
+  if (adjustBounds && typeof adjustBounds === 'object') {
+    const { min, max } = adjustBounds;
+
+    if (goingOutward) {
+      // Allow going farther by relaxing maxDistance up-front (safe, no snapping)
+      if (typeof max === 'number' && max > (controls?.maxDistance ?? 0)) {
+        controls.maxDistance = max;
+      }
+    } else if (goingInward) {
+      // Allow going closer by relaxing minDistance up-front (prevent clamp on inward tween)
+      const desiredMin = typeof min === 'number' ? min : toDist * 0.9;
+      if (typeof desiredMin === 'number' && desiredMin < (controls?.minDistance ?? Infinity)) {
+        controls.minDistance = desiredMin;
+      }
+    }
+
+    // Apply final target bounds after tween completes
+    pendingZoomBounds = adjustBounds;
+  } else {
+    // No explicit bounds provided; no pre-relax, no post-tighten
+    pendingZoomBounds = null;
+  }
+
+  zoomTweenActive = true;
+  zoomStartMs = performance.now();
+  zoomDurationMs = durationMs;
+  zoomFromDist = currentDist;
+  zoomToDist = toDist;
+}
+    // Off-screen showcase control and camera auto-zoom
+    let showcaseIndex = 0;
+    let pendingOffscreenCycle = false;
+
+    // Camera auto-zoom state (applies after intro dolly only)
+    let cameraDistBase = 0, cameraDistOut = 0, cameraDistCurrent = 0, cameraDistTarget = 0;
+let zoomTweenActive = false, zoomStartMs = 0, zoomDurationMs = 0, zoomFromDist = 0, zoomToDist = 0;
+const zoomDir = new THREE.Vector3();
+let pendingZoomTarget = null;
+let pendingZoomBounds = null;
+
 
     // Smooth tracking state with frame-rate independent damping
     const targetYaw = { head: 0, neck: 0, chest: 0, spine: 0, leftShoulder: 0, rightShoulder: 0, leftEye: 0, rightEye: 0 };
@@ -78,8 +198,19 @@ let lookBlend = 1;
     const axisY = new THREE.Vector3(0, 1, 0);
     const axisX = new THREE.Vector3(1, 0, 0);
 
-    // Damping parameters for smooth motion
-    const dampingLambda = 14; // Slightly lower for smoother, more natural motion
+        // Damping parameters for smooth motion
+        const dampingLambda = 14; // Slightly lower for smoother, more natural motion
+        // Per-bone damping for realistic chain-follow
+        const dampingByBone = {
+          head: 18,
+          neck: 15,
+          chest: 11,
+          spine: 9,
+          leftShoulder: 7,
+          rightShoulder: 7,
+          leftEye: 22,
+          rightEye: 22
+        };
 
     const computeCursorTarget = (headPoint) => {
       if (!camera || !headPoint) return headPoint;
@@ -88,7 +219,7 @@ let lookBlend = 1;
       // Fix Y direction - invert it so up cursor = look up
       const lookOffset = new THREE.Vector3(
         pointer.x * 0.3, // Horizontal offset based on cursor X
-        -pointer.y * 0.2 - 0.3, // Adjust vertical offset for better centering
+        -pointer.y * 0.7 - 0.2, // Adjust vertical offset for better centering
         0.5 // Forward offset for natural gaze direction
       );
 
@@ -125,9 +256,10 @@ let lookBlend = 1;
       targetYaw[boneKey] = THREE.MathUtils.clamp(rawYaw, -yawLimit, yawLimit);
       targetPitch[boneKey] = THREE.MathUtils.clamp(rawPitch, -pitchLimit, pitchLimit);
 
-      // Smooth damp toward target using frame-rate independent damping
-      currentYaw[boneKey] = THREE.MathUtils.damp(currentYaw[boneKey], targetYaw[boneKey], dampingLambda, delta);
-      currentPitch[boneKey] = THREE.MathUtils.damp(currentPitch[boneKey], targetPitch[boneKey], dampingLambda, delta);
+      // Smooth damp toward target using per-bone response
+      const lam = (dampingByBone && dampingByBone[boneKey]) ? dampingByBone[boneKey] : dampingLambda;
+      currentYaw[boneKey] = THREE.MathUtils.damp(currentYaw[boneKey], targetYaw[boneKey], lam, delta);
+      currentPitch[boneKey] = THREE.MathUtils.damp(currentPitch[boneKey], targetPitch[boneKey], lam, delta);
 
       // Apply smoothed rotation
       yawQuat.setFromAxisAngle(axisY, currentYaw[boneKey]);
@@ -151,7 +283,7 @@ let lookBlend = 1;
       const distanceToTarget = eyeCenter.distanceTo(targetPoint);
       
       // Reduce eye movement range when target is very close to prevent extreme convergence
-      const minSafeDistance = 0.1; // meters
+      const minSafeDistance = 0.4; // meters
       const convergenceScale = Math.min(1.0, distanceToTarget / minSafeDistance);
       
       // Further reduce eye movement limits to prevent cross-eyed appearance
@@ -210,8 +342,37 @@ let lookBlend = 1;
         window.addEventListener('mousemove', windowMoveHandler);
       }
 // Interaction listeners: window enter/leave and page visibility
-pointerWindowEnterHandler = () => { isPointerInWindow = true; };
-pointerWindowLeaveHandler = () => { isPointerInWindow = false; };
+
+pointerWindowEnterHandler = () => {
+  isPointerInWindow = true;
+  // Stop any off-screen cycle and return to idle with smooth crossfade
+  if (state !== 'idle' && actions['idle']) {
+    setState('idle');
+    crossfadeTo('idle', crossfadeSec);
+  }
+  pendingOffscreenCycle = false;
+  // Smoothly zoom back in to the dolly-in distance (near) after pointer returns (eased like dolly)
+  if (cameraDistBase > 0) {
+    startZoomTween(cameraDistBase, dollyDurationMs, { min: nearDistance * 0.9, max: nearDistance * 1.6 });
+  }
+};
+pointerWindowLeaveHandler = () => {
+  isPointerInWindow = false;
+  console.log('Pointer left window. Scheduling showcase cycle.');
+  // Wait 2 seconds, then start cycling showcase animations
+  if (showcaseTimeoutId) clearTimeout(showcaseTimeoutId);
+  showcaseTimeoutId = setTimeout(() => {
+    if (!isPointerInWindow && isPageVisible) {
+      console.log('Starting showcase cycle.');
+      // Zoom back out to the original framed distance for showcase (eased like dolly)
+      if (farDistance > 0) {
+        startZoomTween(farDistance, dollyDurationMs, { min: farDistance * 0.9, max: farDistance * 1.8 });
+      }
+      setState('showcase');
+      advanceShowcase();
+    }
+  }, 2000);
+};
 document.addEventListener('mouseenter', pointerWindowEnterHandler);
 document.addEventListener('mouseleave', pointerWindowLeaveHandler);
 
@@ -278,7 +439,7 @@ window.addEventListener('focus', focusHandler);
       controls.enableZoom = true;
       controls.zoomSpeed = 0.5; // Slower zoom for more control
       controls.minDistance = 2.0;
-      controls.maxDistance = 4.0; // Keep initial zoom same as before; extended range applied after framing
+      controls.maxDistance = 3.0; // Keep initial zoom same as before; extended range applied after framing
       controls.target.set(0, 0.5, 0); // Focus on upper body where wave happens
 
       // Enhanced lighting for better illumination
@@ -544,64 +705,12 @@ window.addEventListener('focus', focusHandler);
           });
         }
 
-        function crossfadeTo(key, duration = crossfadeSec) {
-          const next = actions[key];
-          if (!next) return;
-          if (currentAction === next) return;
 
-          next.enabled = true;
-          next.reset();
-          next.setEffectiveTimeScale(1);
-          next.setEffectiveWeight(1);
 
-          if (currentAction) {
-            currentAction.crossFadeTo(next, duration, true);
-          } else {
-            next.fadeIn(duration);
-          }
-          next.play();
-          currentAction = next;
-        }
-
-        function setState(next) { state = next; }
-
-        const showcaseKeys = ['arm-stretch', 'happy-idle', 'headshake', 'sad-idle', 'spin', 'thankful'];
-
-        function pickRandomShowcaseKey() {
-          const ready = showcaseKeys.filter(k => actions[k]);
-          if (ready.length === 0) return null;
-          return ready[Math.floor(Math.random() * ready.length)];
-        }
-
-        function scheduleShowcase() {
-          if (showcaseTimeoutId) {
-            clearTimeout(showcaseTimeoutId);
-            showcaseTimeoutId = null;
-          }
-          if (state !== 'idle') return;
-          const delay = 12000 + Math.random() * 6000; // 12–18s
-          showcaseTimeoutId = setTimeout(() => {
-            startShowcase();
-          }, delay);
-        }
-
+        
         function returnToIdle() {
           setState('idle');
-          crossfadeTo('idle', crossfadeSec);
-          scheduleShowcase();
-        }
-
-        function startShowcase() {
-          if (state !== 'idle') return;
-          const key = pickRandomShowcaseKey();
-          if (!key) { scheduleShowcase(); return; }
-          setState('showcase');
-          const a = actions[key];
-          if (a) {
-            a.setLoop(THREE.LoopOnce, 1);
-            a.clampWhenFinished = true;
-          }
-          crossfadeTo(key, crossfadeSec);
+          if (actions['idle']) crossfadeTo('idle', crossfadeSec);
         }
 
         // Load required clips and start sequence
@@ -621,8 +730,8 @@ window.addEventListener('focus', focusHandler);
           // Single handler for both wave-end and showcase-end
           mixerFinishedHandler = (e) => {
             if (!e || !e.action) return;
-
-            // Wave completed: dolly-in, then idle + schedule
+            
+            // Wave completed: dolly-in, then idle (off-screen cycling is pointer-gated)
             if (state === 'intro_wave' && actions['wave'] && e.action === actions['wave']) {
               returnToIdle();
 
@@ -636,8 +745,12 @@ window.addEventListener('focus', focusHandler);
                 controls.enabled = false;
               }
             } else if (state === 'showcase') {
-              // Any non-idle action finishing returns to idle
-              if (e.action !== actions['idle']) {
+              // Continue cycling only when pointer is off-screen and page visible
+              if (!isPointerInWindow && isPageVisible) {
+                console.log('Advancing showcase.');
+                advanceShowcase();
+              } else {
+                console.log('Returning to idle from showcase.');
                 returnToIdle();
               }
             }
@@ -656,8 +769,8 @@ window.addEventListener('focus', focusHandler);
     // Gaze constraint: gently aim head/eyes toward camera (clamped, no long-term drift)
     const maxYawHead = THREE.MathUtils.degToRad(20);
     const maxPitchHead = THREE.MathUtils.degToRad(20);
-    const maxYawEye = THREE.MathUtils.degToRad(8); // Reduced to prevent cross-eyed look
-    const maxPitchEye = THREE.MathUtils.degToRad(6); // Reduced to prevent cross-eyed look
+    const maxYawEye = THREE.MathUtils.degToRad(12); // Reduced to prevent cross-eyed look
+    const maxPitchEye = THREE.MathUtils.degToRad(12); // Reduced to prevent cross-eyed look
     const tmpVec = new THREE.Vector3();
     function aimBoneAtCamera(bone, initQ, yawLimit, pitchLimit, slerpWeight = 0.35) {
       if (!bone || !initQ) return;
@@ -752,9 +865,44 @@ window.addEventListener('focus', focusHandler);
 
           // Now re-enable controls
           controls.enabled = true;
+
+          // Initialize camera auto-zoom baselines after dolly completes
+          cameraDistBase = nearDistance;
+          cameraDistOut = nearDistance * 1.18;
+          cameraDistCurrent = camera.position.distanceTo(controls.target);
+          cameraDistTarget = cameraDistCurrent;
+
+          // If a zoom tween was requested while dolly was active, start it now for smoothness
+          if (pendingZoomTarget !== null) {
+            startZoomTween(pendingZoomTarget, dollyDurationMs, pendingZoomBounds);
+            pendingZoomTarget = null;
+            pendingZoomBounds = null;
+          }
         }
       }
 
+
+      // Smooth camera zoom tween (matches intro dolly easing)
+      if (!dollyActive && zoomTweenActive) {
+        const elapsed = performance.now() - zoomStartMs;
+        const progress = Math.min(1, elapsed / zoomDurationMs);
+        const k = easeInOutCubic(progress);
+        const dist = THREE.MathUtils.lerp(zoomFromDist, zoomToDist, k);
+        const dirToCamTween = camera.position.clone().sub(controls.target).normalize();
+        camera.position.copy(controls.target).add(dirToCamTween.multiplyScalar(dist));
+        cameraDistCurrent = dist;
+        cameraDistTarget = dist;
+        if (progress >= 1) {
+          zoomTweenActive = false;
+          // Apply pending bounds only after tween completes to avoid snaps
+          if (pendingZoomBounds && typeof pendingZoomBounds === 'object') {
+            const { min, max } = pendingZoomBounds;
+            if (typeof min === 'number') controls.minDistance = min;
+            if (typeof max === 'number') controls.maxDistance = max;
+            pendingZoomBounds = null;
+          }
+        }
+      }
 
       // Tracking gates (idle only):
       // Use a smoothed blend between cursor target (1) and camera target (0)
@@ -773,6 +921,23 @@ window.addEventListener('focus', focusHandler);
 
         // Distribute subtle motion through the chain with damping toward the blended target
         aimBoneTowardWorldPoint(headBone, headInitQ, maxYawHead, maxPitchHead, blendedTargetPoint, 'head', delta);
+// Auto-zoom smoothing (after dolly completes): gently adjust camera distance toward target
+if (!dollyActive && !zoomTweenActive && cameraDistTarget > 0) {
+  const dirToCam = camera.position.clone().sub(controls.target).normalize();
+  const currentDist = camera.position.distanceTo(controls.target);
+  if (cameraDistCurrent === 0) cameraDistCurrent = currentDist;
+  cameraDistCurrent = THREE.MathUtils.damp(cameraDistCurrent, cameraDistTarget, 6, delta);
+  camera.position.copy(controls.target).add(dirToCam.multiplyScalar(cameraDistCurrent));
+}
+
+// If pointer left window: wait for gaze to blend to camera before starting off-screen cycle
+if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWindow && lookBlend <= 0.08) {
+  pendingOffscreenCycle = false;
+  showcaseIndex = 0;
+  if (typeof playShowcaseByIndex === 'function') {
+    playShowcaseByIndex(showcaseIndex); // sequential cycle (no idle between)
+  }
+}
         aimBoneTowardWorldPoint(neckBone, neckInitQ, maxYawHead * 0.6, maxPitchHead * 0.6, blendedTargetPoint, 'neck', delta);
         aimBoneTowardWorldPoint(chestBone, chestInitQ, maxYawHead * 0.35, maxPitchHead * 0.35, blendedTargetPoint, 'chest', delta);
         aimBoneTowardWorldPoint(spineBone, spineInitQ, maxYawHead * 0.2, maxPitchHead * 0.2, blendedTargetPoint, 'spine', delta);
@@ -956,3 +1121,4 @@ window.addEventListener('focus', focusHandler);
 };
 
 export default Profile;
+
