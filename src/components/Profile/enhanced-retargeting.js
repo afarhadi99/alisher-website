@@ -334,9 +334,41 @@ function createFallbackAnimation(model, originalClip) {
  * @returns {THREE.AnimationClip} - Adjusted clip
  */
 function adjustTPoseDifferences(sourceModel, targetModel, clip) {
-  // For now, return the clip as-is
-  // This can be enhanced later with T-pose comparison and rotation adjustments
-  console.log('T-pose adjustment: Feature reserved for future enhancement');
+  const sourceHips = sourceModel.getObjectByName('mixamorigHips');
+  const targetHips = targetModel.getObjectByName('Hips');
+
+  if (!sourceHips || !targetHips) {
+    console.warn('Hips not found in one or both models, skipping T-pose adjustment.');
+    return clip;
+  }
+
+  const sourceRotation = new THREE.Quaternion();
+  sourceHips.getWorldQuaternion(sourceRotation);
+
+  const targetRotation = new THREE.Quaternion();
+  targetHips.getWorldQuaternion(targetRotation);
+
+  const correction = targetRotation.clone().invert().multiply(sourceRotation);
+
+  for (const track of clip.tracks) {
+    const [boneName, trackType] = track.name.split('.');
+
+    if (trackType === 'quaternion') {
+      const targetBone = targetModel.getObjectByName(COMPLETE_BONE_MAPPING[boneName]);
+      if (targetBone) {
+        const values = track.values;
+        for (let i = 0; i < values.length; i += 4) {
+          const quat = new THREE.Quaternion(values[i], values[i + 1], values[i + 2], values[i + 3]);
+          quat.multiply(correction);
+          values[i] = quat.x;
+          values[i + 1] = quat.y;
+          values[i + 2] = quat.z;
+          values[i + 3] = quat.w;
+        }
+      }
+    }
+  }
+
   return clip;
 }
 
