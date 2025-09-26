@@ -49,7 +49,7 @@ export const metadata: Metadata = {
     title: "Alisher Farhadi - Developer, Educator, Entrepreneur",
     description:
       "Alisher Farhadi is a developer, educator, and entrepreneur, and an AI enthusiast having developed several SAAS platforms and worked on online infrastructure.",
-    images: ["/twitter-image.png"], // placeholder
+    images: ["/og-image.png"], // placeholder
   },
   icons: {
     icon: "/favicon.ico",
