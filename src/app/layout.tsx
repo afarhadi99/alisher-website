@@ -26,10 +26,10 @@ export const metadata: Metadata = {
     "infrastructure",
   ],
   authors: [{ name: "Alisher Farhadi" }],
-  metadataBase: new URL("https://www.alisher.space"),
+  metadataBase: new URL("https://alisher.space"),
   openGraph: {
     type: "website",
-    url: "https://www.alisher.space",
+    url: "https://alisher.space",
     title: "Alisher Farhadi - Developer, Educator, Entrepreneur",
     description:
       "Alisher Farhadi is a developer, educator, and entrepreneur, and an AI enthusiast having developed several SAAS platforms and worked on online infrastructure.",
