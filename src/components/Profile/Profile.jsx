@@ -1380,7 +1380,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
         </p>
                 <div className="flex justify-center space-x-4">
           <a
-            href="https://youtube.com/@your-channel"
+            href="https://www.youtube.com/channel/UCftW5EHVIF-_xStoVZL-fYg"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
@@ -1389,7 +1389,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             <Youtube className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
-            href="https://x.com/your-handle"
+            href="https://x.com/AlisherFarhadi"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
@@ -1398,7 +1398,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             <Twitter className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
-            href="https://linkedin.com/in/your-profile"
+            href="https://www.linkedin.com/in/alisher-farhadi-540945184/"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
@@ -1407,7 +1407,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             <Linkedin className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
-            href="https://github.com/your-username"
+            href="https://github.com/afarhadi99"
             target="_blank"
             rel="noopener noreferrer"
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"

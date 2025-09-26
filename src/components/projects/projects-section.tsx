@@ -7,12 +7,20 @@ import { ProjectCard } from './project-card';
 import { ProjectDialog } from './project-dialog';
 import { projects, getProjectsByCategory } from '@/data/projects';
 import { Project, ProjectCategory } from '@/types';
+import { Button } from '@/components/ui/button';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import { motion, useReducedMotion, type Transition } from 'framer-motion';
+ 
+interface ProjectsSectionProps {
+  expanded?: boolean;
+  onToggle?: () => void;
+}
 
-export function ProjectsSection() {
+export function ProjectsSection({ expanded = false, onToggle }: ProjectsSectionProps) {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [activeCategory, setActiveCategory] = useState<ProjectCategory>('all');
   const [currentPage, setCurrentPage] = useState(1);
-
+ 
   const filteredProjects = getProjectsByCategory(activeCategory);
   
   // Responsive pagination - mobile shows 3, tablet shows 3, desktop shows 4
@@ -35,9 +43,29 @@ export function ProjectsSection() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentProjects = filteredProjects.slice(startIndex, startIndex + itemsPerPage);
+  // Motion settings and effective pagination size
+  const reduced = useReducedMotion();
+  const layoutTransition: Transition = reduced ? { duration: 0.15 } : { stiffness: 300, damping: 30, mass: 0.3 };
+
+  // Track sub-lg viewport to enable expanded mode behavior only on mobile/tablet
+  const [isSubLg, setIsSubLg] = useState(typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+  useEffect(() => {
+    const handler = () => setIsSubLg(window.innerWidth < 1024);
+    handler();
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, []);
+
+  const effectiveItemsPerPage = expanded && isSubLg ? 4 : itemsPerPage;
+
+  // Reset to page 1 on expand/collapse or category/items-per-page change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [expanded, activeCategory, effectiveItemsPerPage]);
+
+  const totalPages = Math.ceil(filteredProjects.length / effectiveItemsPerPage);
+  const startIndex = (currentPage - 1) * effectiveItemsPerPage;
+  const currentProjects = filteredProjects.slice(startIndex, startIndex + effectiveItemsPerPage);
 
   // Reset to page 1 when category changes
   const handleCategoryChange = (category: ProjectCategory) => {
@@ -48,9 +76,23 @@ export function ProjectsSection() {
   return (
     <div className="h-full flex flex-col">
       <div className="p-3 md:p-4 border-b">
-        <h2 className="text-base md:text-lg font-semibold mb-3 md:mb-4">Projects</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base md:text-lg font-semibold">Projects</h2>
+          <div className="lg:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onToggle}
+              aria-pressed={expanded}
+              aria-expanded={expanded}
+              aria-label={expanded ? 'Collapse projects' : 'Expand projects'}
+            >
+              {expanded ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
         <Tabs value={activeCategory} onValueChange={(value) => handleCategoryChange(value as ProjectCategory)}>
-          <TabsList className="grid grid-cols-5 w-full h-9 md:h-10">
+          <TabsList className="grid grid-cols-5 w-full h-9 md:h-10 mt-3">
             <TabsTrigger value="all" className="text-xs md:text-sm">All</TabsTrigger>
             <TabsTrigger value="devrel" className="text-xs md:text-sm">DevRel</TabsTrigger>
             <TabsTrigger value="frontend" className="text-xs md:text-sm">Frontend</TabsTrigger>
@@ -61,15 +103,16 @@ export function ProjectsSection() {
       </div>
 
       <div className="flex-1 p-3 md:p-4">
-        <div className="space-y-2 md:space-y-3 h-full">
+        <motion.div layout transition={layoutTransition} className="space-y-2 md:space-y-3 h-full">
           {currentProjects.map((project) => (
-            <ProjectCard
-              key={project.id}
-              project={project}
-              onClick={() => setSelectedProject(project)}
-            />
+            <motion.div key={project.id} layout transition={layoutTransition}>
+              <ProjectCard
+                project={project}
+                onClick={() => setSelectedProject(project)}
+              />
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
 
       {totalPages > 1 && (
