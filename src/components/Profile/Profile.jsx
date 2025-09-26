@@ -382,13 +382,16 @@ let zoomEaseMode = 'linear';
       scene = new THREE.Scene();
       scene.background = null; // Transparent background
 
+      // Enable caching so loaders reuse fetched assets/shaders
+      THREE.Cache.enabled = true;
+
       // Camera - Better angle to see animation
       camera = new THREE.PerspectiveCamera(30, currentMount.clientWidth / currentMount.clientHeight, 0.1, 1000);
       camera.position.set(0, 0.5, 2.5);
       camera.lookAt(0, 0.5, 0);
 
       // Renderer
-      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
       renderer.setSize(currentMount.clientWidth, currentMount.clientHeight);
       // Do NOT enable XR unless we’re actually in mobile AR; XR framebuffers often clear opaque backgrounds
       renderer.xr.enabled = false;
@@ -403,7 +406,8 @@ let zoomEaseMode = 'linear';
 
       // High fidelity renderer settings
       renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      // Smoother, denoised shadows
+      renderer.shadowMap.type = THREE.VSMShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping; // [Renderer.toneMapping](three.js-master/docs/api/en/renderers/WebGLRenderer.html:318)
       renderer.toneMappingExposure = 1.05;
       renderer.physicallyCorrectLights = true;
@@ -505,7 +509,7 @@ window.addEventListener('blur', blurHandler);
 window.addEventListener('focus', focusHandler);
 
       // Cap DPR after device check to balance fidelity and performance
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.5 : 2)); // [WebGLRenderer.setPixelRatio()](three.js-master/docs/api/en/renderers/WebGLRenderer.html:586)
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isMobile ? 1.75 : 2.25)); // [WebGLRenderer.setPixelRatio()](three.js-master/docs/api/en/renderers/WebGLRenderer.html:586)
 
       // Mobile AR button inside the container with WebXR hit-test + DOM overlay
       if (isMobile) {
@@ -568,7 +572,11 @@ window.addEventListener('focus', focusHandler);
       const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0); // Much brighter directional
       directionalLight.position.set(5, 5, 5);
       directionalLight.castShadow = true;
-      directionalLight.shadow.mapSize.set(1024, 1024);
+      // Higher shadow resolution; mobile lower, desktop higher
+      directionalLight.shadow.mapSize.set(isMobile ? 1024 : 2048, isMobile ? 1024 : 2048);
+      // Reduce acne/self-shadowing
+      directionalLight.shadow.bias = -0.00025;
+      directionalLight.shadow.normalBias = 0.3;
       directionalLight.shadow.camera.near = 0.5;
       directionalLight.shadow.camera.far = 20;
       scene.add(directionalLight);
@@ -713,6 +721,17 @@ window.addEventListener('focus', focusHandler);
             controls.minDistance = farDistance * 0.9;
             controls.maxDistance = farDistance * 1.8; // More zoom-out range
             controls.enablePan = false;
+
+            // Fit directional light shadow camera around the avatar bounds for crisper shadows
+            if (directionalLight && directionalLight.shadow && directionalLight.shadow.camera) {
+              const shCam = directionalLight.shadow.camera;
+              const r = Math.max(size.x, size.y, size.z) * 0.75;
+              if (shCam.isOrthographicCamera) {
+                shCam.left = -r; shCam.right = r; shCam.top = r; shCam.bottom = -r;
+                shCam.near = 0.1; shCam.far = Math.max(10, r * 4);
+                shCam.updateProjectionMatrix();
+              }
+            }
           } else {
             // Fallback without a head bone: aim above center toward head region
             controls.target.set(center.x, center.y + size.y * 0.7, center.z);
@@ -728,6 +747,17 @@ window.addEventListener('focus', focusHandler);
             controls.minDistance = farDistance * 0.9;
             controls.maxDistance = farDistance * 1.8; // More zoom-out range
             controls.enablePan = false;
+
+            // Fit directional light shadow camera around the avatar bounds for crisper shadows
+            if (directionalLight && directionalLight.shadow && directionalLight.shadow.camera) {
+              const shCam = directionalLight.shadow.camera;
+              const r = Math.max(size.x, size.y, size.z) * 0.75;
+              if (shCam.isOrthographicCamera) {
+                shCam.left = -r; shCam.right = r; shCam.top = r; shCam.bottom = -r;
+                shCam.near = 0.1; shCam.far = Math.max(10, r * 4);
+                shCam.updateProjectionMatrix();
+              }
+            }
           }
         } catch (e) {
           // Safe fallback portrait
@@ -867,7 +897,16 @@ window.addEventListener('focus', focusHandler);
             loadFBXClip(k, `/${k}.fbx`, { loopMode: THREE.LoopOnce, repetitions: 1, clamp: true });
           });
 
-          // Start with wave
+          // Prewarm: hide canvas, pre-render a couple frames so the wave starts without a hitch
+          if (renderer && renderer.domElement && renderer.domElement.style) {
+            renderer.domElement.style.visibility = 'hidden';
+          }
+          await prewarmRendererFrames(2);
+          if (renderer && renderer.domElement && renderer.domElement.style) {
+            renderer.domElement.style.visibility = 'visible';
+          }
+
+          // Start with wave (after prewarm)
           setState('intro_wave');
           crossfadeTo('wave', 0.1);
 
@@ -975,6 +1014,25 @@ window.addEventListener('focus', focusHandler);
       fovDurationMs = durationMs;
       fovFromDeg = camera.fov;
       fovToDeg = THREE.MathUtils.clamp(toDeg, FOV_MIN, FOV_MAX);
+    }
+
+    // Prewarm renderer/shaders/textures to eliminate first-frame hitch
+    async function prewarmRendererFrames(frames = 2) {
+      if (!renderer || !scene || !camera) return;
+      try {
+        renderer.compile(scene, camera); // [WebGLRenderer.compile()](three.js-master/docs/api/en/renderers/WebGLRenderer.html:1)
+      } catch (e) {
+        // compile may not cover all materials; still proceed with warm-up renders
+      }
+      for (let i = 0; i < frames; i++) {
+        if (mixer) mixer.update(1 / 60);
+        if (composer) {
+          composer.render(1 / 60);
+        } else {
+          renderer.render(scene, camera);
+        }
+        await new Promise((resolve) => requestAnimationFrame(() => resolve()));
+      }
     }
 
     const animate = () => {
@@ -1313,28 +1371,14 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
   return (
     <div className="flex flex-col h-full">
       {/* Header Section - Name */}
-      <div className="text-center py-2 border-b border-border">
+      <div className="text-center py-2 border-b border-border space-y-2">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">
           Alisher Farhadi
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Developer, Educator, Entrepreneur
         </p>
-      </div>
-
-      {/* Canvas Section - 3D Model */}
-      <div className="flex-1 relative min-h-0">
-        {/* Ensure container is transparent so the canvas blends with page */}
-        <div
-          ref={mountRef}
-          className="w-full h-full bg-transparent"
-          style={{ background: 'transparent' }}
-        />
-      </div>
-
-      {/* Footer Section - Social Media Icons */}
-      <div className="py-2 border-t border-border">
-        <div className="flex justify-center space-x-4">
+                <div className="flex justify-center space-x-4">
           <a
             href="https://youtube.com/@your-channel"
             target="_blank"
@@ -1373,6 +1417,18 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
           </a>
         </div>
       </div>
+
+      {/* Canvas Section - 3D Model */}
+      <div className="flex-1 relative min-h-0">
+        {/* Ensure container is transparent so the canvas blends with page */}
+        <div
+          ref={mountRef}
+          className="w-full h-full bg-transparent"
+          style={{ background: 'transparent' }}
+        />
+      </div>
+
+
     </div>
   );
 };
