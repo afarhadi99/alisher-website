@@ -51,6 +51,8 @@ let blurHandler = null;
 let focusHandler = null;
 let pointerOverHandler = null;
 let pointerOutHandler = null;
+let documentMouseOverHandler = null;
+let documentMouseOutHandler = null;
     // Smoothly blend gaze target: 1 = cursor target, 0 = camera target
     let lookBlend = 1;
     // Enable interactions only after intro (wave → dolly) completes
@@ -65,8 +67,8 @@ let pointerOutHandler = null;
     const FOV_MIN = 20; // deg
     const FOV_MAX = 65; // deg
     const FOV_RESTORE_MS = 1800; // smoother return of FOV to baseline after effect
-// Pointer-driven zoom duration (no-delay but smooth)
-const POINTER_ZOOM_MS = 1800;
+// Pointer-driven zoom duration (snappier interaction)
+const POINTER_ZOOM_MS = 1000;
 
 // Cancel any in-flight camera transitions to remove perceived delay
 function cancelCameraTransitions() {
@@ -142,14 +144,17 @@ function playShowcaseByIndex(i) {
   a.setLoop(THREE.LoopOnce, 1);
   a.clampWhenFinished = true;
 
-  // Ensure zoom-out to showcase framing (with dolly-zoom)
-  if (zoomOutDistanceCanonical > 0) {
-    startZoomTween(
-      zoomOutDistanceCanonical,
-      POINTER_ZOOM_MS,
-      { min: zoomOutDistanceCanonical * 0.9, max: zoomOutDistanceCanonical * 1.8 },
-      { dollyZoom: true, restoreFov: true, ease: 'linear' }
-    );
+  // Ensure zoom-out to showcase framing (with dolly-zoom), but avoid redundant/overlapping tweens
+  if (zoomOutDistanceCanonical > 0 && camera && controls && !dollyActive && !zoomTweenActive) {
+    const currentDist = camera.position.distanceTo(controls.target);
+    if (Math.abs(currentDist - zoomOutDistanceCanonical) > 1e-3) {
+      startZoomTween(
+        zoomOutDistanceCanonical,
+        POINTER_ZOOM_MS,
+        { min: zoomOutDistanceCanonical * 0.9, max: zoomOutDistanceCanonical * 1.6 },
+        { dollyZoom: true, restoreFov: true, ease: 'linear' }
+      );
+    }
   }
 
   setState('showcase');
@@ -189,6 +194,17 @@ function startZoomTween(toDist, durationMs = 1400, adjustBounds = null, options 
   const currentDist = camera.position.distanceTo(controls.target);
   const goingOutward = toDist > currentDist;
   const goingInward = toDist < currentDist;
+
+  // No-op/duplicate guard to prevent jitter and redundant restarts
+  const EPS = 1e-3;
+  if (!zoomTweenActive && Math.abs(toDist - currentDist) < EPS) {
+    pendingZoomBounds = adjustBounds || null;
+    return;
+  }
+  if (zoomTweenActive && Math.abs(toDist - zoomToDist) < EPS) {
+    pendingZoomBounds = adjustBounds || pendingZoomBounds;
+    return;
+  }
 
   // Prepare bounds to avoid OrbitControls clamping during tween
   if (adjustBounds && typeof adjustBounds === 'object') {
@@ -460,7 +476,7 @@ pointerWindowEnterHandler = () => {
       targetNear,
       POINTER_ZOOM_MS,
       { min: targetNear * 0.9, max: targetNear * 1.6 },
-      { dollyZoom: true, restoreFov: true, ease: 'linear' }
+      { dollyZoom: true, restoreFov: true, ease: 'outCubic' }
     );
   }
 };
@@ -482,22 +498,20 @@ pointerWindowLeaveHandler = () => {
       startZoomTween(
         targetFar,
         POINTER_ZOOM_MS,
-        { min: targetFar * 0.9, max: targetFar * 1.8 },
-        { dollyZoom: true, restoreFov: true, ease: 'linear' }
+        { min: targetFar * 0.9, max: targetFar * 1.6 },
+        { dollyZoom: true, restoreFov: true, ease: 'outCubic' }
       );
     }
-    setState('showcase');
-    advanceShowcase();
+    // Defer showcase until zoom settles and gaze blends toward camera (handled in idle loop)
+    pendingOffscreenCycle = true;
   }
 };
-document.addEventListener('mouseenter', pointerWindowEnterHandler);
-document.addEventListener('mouseleave', pointerWindowLeaveHandler);
-
-// Also listen to pointerover/out on window for zero-latency reactions
-pointerOverHandler = (e) => { if (e && e.type === 'pointerover') pointerWindowEnterHandler(); };
-pointerOutHandler = (e) => { if (!e || e.relatedTarget === null) pointerWindowLeaveHandler(); };
-window.addEventListener('pointerover', pointerOverHandler);
-window.addEventListener('pointerout', pointerOutHandler);
+// Robust window enter/leave detection using document-level mouseover/mouseout
+// Fires only when crossing the window boundary (relatedTarget === null)
+documentMouseOverHandler = (e) => { if (!e || e.relatedTarget === null) pointerWindowEnterHandler(); };
+documentMouseOutHandler = (e) => { if (!e || e.relatedTarget === null) pointerWindowLeaveHandler(); };
+document.addEventListener('mouseover', documentMouseOverHandler);
+document.addEventListener('mouseout', documentMouseOutHandler);
 
 // Page/tab visibility and window focus, used to gate tracking toward camera
 isPageVisible = !document.hidden;
@@ -719,7 +733,7 @@ window.addEventListener('focus', focusHandler);
             camera.lookAt(headWorld);
 
             controls.minDistance = farDistance * 0.9;
-            controls.maxDistance = farDistance * 1.8; // More zoom-out range
+            controls.maxDistance = farDistance * 1.6; // Tamer zoom-out range
             controls.enablePan = false;
 
             // Fit directional light shadow camera around the avatar bounds for crisper shadows
@@ -745,7 +759,7 @@ window.addEventListener('focus', focusHandler);
             camera.lookAt(controls.target);
 
             controls.minDistance = farDistance * 0.9;
-            controls.maxDistance = farDistance * 1.8; // More zoom-out range
+            controls.maxDistance = farDistance * 1.6; // Tamer zoom-out range
             controls.enablePan = false;
 
             // Fit directional light shadow camera around the avatar bounds for crisper shadows
@@ -1310,13 +1324,13 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
       }
 
       // Window enter/leave listeners
-      if (pointerWindowEnterHandler) {
-        document.removeEventListener('mouseenter', pointerWindowEnterHandler);
-        pointerWindowEnterHandler = null;
+      if (documentMouseOverHandler) {
+        document.removeEventListener('mouseover', documentMouseOverHandler);
+        documentMouseOverHandler = null;
       }
-      if (pointerWindowLeaveHandler) {
-        document.removeEventListener('mouseleave', pointerWindowLeaveHandler);
-        pointerWindowLeaveHandler = null;
+      if (documentMouseOutHandler) {
+        document.removeEventListener('mouseout', documentMouseOutHandler);
+        documentMouseOutHandler = null;
       }
       if (pointerOverHandler) {
         window.removeEventListener('pointerover', pointerOverHandler);
