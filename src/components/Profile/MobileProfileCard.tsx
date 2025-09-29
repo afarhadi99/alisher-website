@@ -2,7 +2,7 @@
 
 import React, { useCallback, useRef, useState } from 'react';
 import Image from 'next/image';
-import { Youtube, Twitter, Linkedin, Github } from 'lucide-react';
+import { FaYoutube, FaXTwitter, FaLinkedin, FaGithub } from 'react-icons/fa6';
 
 const MobileProfileCard: React.FC = () => {
   const [arSupported, setArSupported] = useState<boolean | null>(null);
@@ -188,7 +188,7 @@ const MobileProfileCard: React.FC = () => {
               className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
               aria-label="YouTube Channel"
             >
-              <Youtube className="w-5 h-5" />
+              <FaYoutube className="w-5 h-5" />
             </a>
             <a
               href="https://x.com/AlisherFarhadi"
@@ -197,7 +197,7 @@ const MobileProfileCard: React.FC = () => {
               className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
               aria-label="X (Twitter) Profile"
             >
-              <Twitter className="w-5 h-5" />
+              <FaXTwitter className="w-5 h-5" />
             </a>
             <a
               href="https://www.linkedin.com/in/alisher-farhadi-540945184/"
@@ -206,7 +206,7 @@ const MobileProfileCard: React.FC = () => {
               className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
               aria-label="LinkedIn Profile"
             >
-              <Linkedin className="w-5 h-5" />
+              <FaLinkedin className="w-5 h-5" />
             </a>
             <a
               href="https://github.com/afarhadi99"
@@ -215,7 +215,7 @@ const MobileProfileCard: React.FC = () => {
               className="p-1.5 rounded-md hover:bg-accent hover:text-accent-foreground transition-colors duration-200"
               aria-label="GitHub Profile"
             >
-              <Github className="w-5 h-5" />
+              <FaGithub className="w-5 h-5" />
             </a>
           </div>
         </div>

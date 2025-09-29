@@ -11,7 +11,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
 import { BokehPass } from 'three/examples/jsm/postprocessing/BokehPass';
 import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass';
-import { Youtube, Twitter, Linkedin, Github } from 'lucide-react';
+import { FaYoutube, FaXTwitter, FaLinkedin, FaGithub } from 'react-icons/fa6';
 import { safeRetargetClip, validateSkeletonMapping, runRetargetingTests } from './enhanced-retargeting';
 import { COMPLETE_BONE_MAPPING } from './bone-mapping';
 import { createArmClearanceConstraint } from './arm-constraints';
@@ -1400,7 +1400,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
             aria-label="YouTube Channel"
           >
-            <Youtube className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+            <FaYoutube className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
             href="https://x.com/AlisherFarhadi"
@@ -1409,7 +1409,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
             aria-label="X (Twitter) Profile"
           >
-            <Twitter className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+            <FaXTwitter className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
             href="https://www.linkedin.com/in/alisher-farhadi-540945184/"
@@ -1418,7 +1418,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
             aria-label="LinkedIn Profile"
           >
-            <Linkedin className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+            <FaLinkedin className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
           <a
             href="https://github.com/afarhadi99"
@@ -1427,7 +1427,7 @@ if (pendingOffscreenCycle && state === 'idle' && isPageVisible && !isPointerInWi
             className="p-2 rounded-lg hover:bg-accent hover:text-accent-foreground transition-colors duration-200 group"
             aria-label="GitHub Profile"
           >
-            <Github className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
+            <FaGithub className="w-7 h-7 group-hover:scale-110 transition-transform duration-200" />
           </a>
         </div>
       </div>
