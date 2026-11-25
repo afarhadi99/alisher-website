@@ -2,7 +2,7 @@
 
 A fast, content-first portfolio built with Next.js 15, React 19, TypeScript and Tailwind CSS 4. Every page is statically generated: a homepage, a searchable project archive, a page for each project, writing, and a 3D avatar playground.
 
-Production URL: `https://www.alisher.space`.
+Production URL: `https://alisher-website.vercel.app`. It is set once, in `src/lib/site.ts`. The earlier `alisher.space` domain no longer resolves; to move to a custom domain, change that file and regenerate the Open Graph images.
 
 ## Run locally
 

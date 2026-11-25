@@ -19,7 +19,7 @@ const out = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'publi
 const esc = (text) =>
   String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
-function card({ eyebrow, title, summary, shots, shape }) {
+function card({ eyebrow, title, summary, shots, shape, site }) {
   const size = title.length > 44 ? 50 : title.length > 22 ? 60 : 74;
   let visual = '';
   if (shape === 'portrait') {
@@ -71,14 +71,15 @@ function card({ eyebrow, title, summary, shots, shape }) {
       <div class="eyebrow">${esc(eyebrow)}</div>
       <h1>${esc(title)}</h1>
       <p>${esc(summary)}</p>
-      <div class="site">alisher.space</div>
+      <div class="site">${esc(site)}</div>
     </div>
     ${visual}
   </body></html>`;
 }
 
+let site = '';
 async function shoot(page, file, data) {
-  await page.setContent(card(data), { waitUntil: 'load' });
+  await page.setContent(card({ ...data, site }), { waitUntil: 'load' });
   await page.evaluate(() => document.fonts.ready);
   await page.waitForFunction(() => [...document.images].every((img) => img.complete));
   await page.screenshot({ path: path.join(out, file), type: 'jpeg', quality: 90 });
@@ -92,6 +93,13 @@ async function shoot(page, file, data) {
   const reader = await context.newPage();
   const canvas = await context.newPage();
   await canvas.goto(`${origin}/robots.txt`); // gives setContent the site's origin for /fonts and images
+
+  // The address printed on each card is the one the site itself declares (src/lib/site.ts).
+  await reader.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
+  site = await reader.evaluate(() => {
+    const image = document.querySelector('meta[property="og:image"]')?.getAttribute('content');
+    return image ? new URL(image).host.replace(/^www\./, '') : location.host;
+  });
 
   await shoot(canvas, 'home.jpg', {
     eyebrow: 'AI builder · Educator',

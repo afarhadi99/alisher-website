@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { siteUrl } from "@/lib/site";
 
 const body = localFont({
   src: "../../public/fonts/manrope-latin.woff2",
@@ -12,7 +13,7 @@ const description =
   "Alisher Farhadi builds AI products and classroom software, and teaches people how to use them. See Pixio, TSI Hub, native apps and open-source tools.";
 const title = "Alisher Farhadi | AI builder and educator";
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.alisher.space"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: title,
     template: "%s | Alisher Farhadi",

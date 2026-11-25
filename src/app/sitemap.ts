@@ -1,9 +1,10 @@
 import type { MetadataRoute } from 'next';
 import { portfolioProjects } from '@/data/portfolio';
 import { publishedPosts } from '@/data/posts';
+import { siteUrl } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const base = 'https://www.alisher.space';
+  const base = siteUrl;
   return [
     ...['', '/work', '/blog', '/playground'].map((path) => ({
       url: `${base}${path}`,

@@ -1,4 +1,5 @@
 import { publishedPosts } from '@/data/posts';
+import { siteUrl } from '@/lib/site';
 
 export const dynamic = 'force-static';
 function escapeXml(value: string) {
@@ -15,7 +16,7 @@ function escapeXml(value: string) {
   );
 }
 export function GET() {
-  const base = 'https://www.alisher.space';
+  const base = siteUrl;
   const items = publishedPosts
     .map((post) => {
       const url = escapeXml(post.href ?? `${base}/blog/${post.slug}`);
