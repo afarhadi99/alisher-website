@@ -1,0 +1,29 @@
+{
+  "source": "model.glb",
+  "originalModelBytes": 3574804,
+  "originalInitialAnimationBytes": 2399584,
+  "optimizedBytes": 1799172,
+  "textures": "WebP: colour quality 88, normal and material maps lossless, original 1024px resolution",
+  "geometry": "Original mesh and skin preserved",
+  "animations": [
+    {
+      "name": "idle",
+      "tracks": 52
+    },
+    {
+      "name": "wave",
+      "tracks": 52
+    }
+  ],
+  "animationSampling": "30 fps with 0.12 degree keyframe reduction tolerance",
+  "animationSources": [
+    {
+      "file": "idle.fbx",
+      "bytes": 1528608
+    },
+    {
+      "file": "wave.fbx",
+      "bytes": 870976
+    }
+  ]
+}

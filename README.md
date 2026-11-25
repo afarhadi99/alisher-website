@@ -1,193 +1,106 @@
-# Alisher Portfolio Website
+# Alisher Farhadi’s portfolio
 
-A modern, professional portfolio website built with Next.js 15, TypeScript, and Tailwind CSS v4, featuring shadcn/ui components.
+A fast, content-first portfolio built with Next.js 15, React 19, TypeScript and Tailwind CSS 4. Every page is statically generated: a homepage, a searchable project archive, a page for each project, writing, and a 3D avatar playground.
 
-## 🚀 Features
+Production URL: `https://www.alisher.space`.
 
-### Layout
-- **3-Column Design**: Full viewport height with no scrolling
-- **Responsive Grid**: Professional layout matching modern portfolio standards
-- **Profile Section**: Left column reserved for future profile content
-- **Projects Showcase**: Middle column with tabbed filtering
-- **Media Gallery**: Right column with paginated content grid
+## Run locally
 
-### Projects Section
-- **Tabbed Interface**: Filter by All, Web, Mobile, AI categories
-- **Interactive Cards**: Click to view detailed project information
-- **Detailed Dialogs**: Full project descriptions, technologies, and links
-- **Status Indicators**: Visual badges for project completion status
-- **Technology Tags**: Clean display of tech stack for each project
-
-### Media Section
-- **4x2 Grid Layout**: Optimized for showcasing articles, videos, talks, etc.
-- **Pagination**: Navigate through multiple pages of content
-- **Content Types**: Support for articles, videos, podcasts, interviews, talks
-- **External Links**: Direct links to original content with hover effects
-- **Platform Integration**: Display source platforms (Medium, YouTube, etc.)
-
-## 🛠 Tech Stack
-
-- **Framework**: Next.js 15.5.2 with App Router
-- **Language**: TypeScript 5+ with strict configuration
-- **Styling**: Tailwind CSS v4 (latest) with custom theme
-- **UI Components**: shadcn/ui (Radix UI primitives)
-- **Icons**: Lucide React
-- **Development**: ESLint, Turbopack for fast development
-
-## 📁 Project Structure
-
-```
-alisher-website/
-├── src/
-│   ├── app/                    # Next.js App Router
-│   │   ├── globals.css        # Global styles with Tailwind
-│   │   ├── layout.tsx         # Root layout component
-│   │   └── page.tsx           # Main page component
-│   ├── components/            # React components
-│   │   ├── ui/               # shadcn/ui components
-│   │   ├── projects/         # Project-related components
-│   │   │   ├── projects-section.tsx
-│   │   │   ├── project-card.tsx
-│   │   │   └── project-dialog.tsx
-│   │   └── media/            # Media-related components
-│   │       ├── media-section.tsx
-│   │       └── media-card.tsx
-│   ├── data/                 # Sample data
-│   │   ├── projects.ts       # Project data and utilities
-│   │   └── media.ts          # Media data and utilities
-│   ├── types/                # TypeScript definitions
-│   │   └── index.ts
-│   └── lib/                  # Utility functions
-│       └── utils.ts          # shadcn/ui utilities
-├── public/                   # Static assets
-└── configuration files
+```sh
+npm ci
+npm run dev
 ```
 
-## 🚀 Getting Started
+Open http://localhost:3000. For a production check, stop the development server first, then:
 
-### Prerequisites
-- Node.js 18.17 or higher
-- npm, yarn, or pnpm
-
-### Installation
-
-1. **Clone and navigate to the project**:
-   ```bash
-   cd alisher-website
-   ```
-
-2. **Install dependencies**:
-   ```bash
-   npm install
-   ```
-
-3. **Start development server**:
-   ```bash
-   npm run dev
-   ```
-
-4. **Open your browser**:
-   ```
-   http://localhost:3000
-   ```
-
-### Available Scripts
-
-- `npm run dev` - Start development server with Turbopack
-- `npm run build` - Build for production with Turbopack
-- `npm run start` - Start production server
-- `npm run lint` - Run ESLint
-
-## 🎨 Customization
-
-### Adding Your Projects
-
-Edit `src/data/projects.ts` to add your own projects:
-
-```typescript
-{
-  id: 'unique-id',
-  name: 'Project Name',
-  shortDescription: 'Brief description for the card',
-  longDescription: 'Detailed description for the dialog',
-  image: '/path-to-image.jpg',
-  link: 'https://project-url.com',
-  githubLink: 'https://github.com/username/repo', // optional
-  technologies: ['Next.js', 'TypeScript', 'Tailwind CSS'],
-  status: 'completed', // 'completed' | 'in-progress' | 'planned'
-  category: 'web', // 'all' | 'web' | 'mobile' | 'ai'
-  date: new Date('2024-01-01'),
-  featured: true, // boolean
-}
-```
-
-### Adding Your Media
-
-Edit `src/data/media.ts` to add your articles, videos, etc.:
-
-```typescript
-{
-  id: 'unique-id',
-  title: 'Media Title',
-  shortDescription: 'Brief description',
-  longDescription: 'Detailed description',
-  image: '/path-to-image.jpg',
-  link: 'https://external-link.com',
-  type: 'article', // 'article' | 'video' | 'podcast' | 'interview' | 'talk'
-  platform: 'Medium', // Platform name
-  publishedDate: new Date('2024-01-01'),
-  featured: true, // boolean
-}
-```
-
-### Styling Customization
-
-The project uses Tailwind CSS v4 with custom CSS variables defined in `src/app/globals.css`. Modify the theme variables to match your brand:
-
-```css
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-  /* Add your custom variables */
-}
-```
-
-## 🚢 Deployment
-
-### Vercel (Recommended)
-```bash
+```sh
+npm run lint
 npm run build
-# Deploy to Vercel
+npm start
 ```
 
-### Other Platforms
-The project is a standard Next.js application and can be deployed to any platform supporting Node.js:
-- Netlify
-- Railway
-- AWS Amplify
-- DigitalOcean App Platform
+## Where things live
 
-## 📝 Next Steps
+| What | File |
+| --- | --- |
+| Pixio apps, TSI Hub and its apps, teaching details, link corrections | `src/data/portfolio.ts` |
+| The original project archive | `src/data/projects.ts` |
+| Blog entries | `src/data/posts.ts` |
+| Talks and events | `src/data/media.ts` |
+| Homepage | `src/app/page.tsx` |
+| Header, footer and social links | `src/components/portfolio/site-shell.tsx` |
+| Browser, phone and tablet frames | `src/components/site/frames.tsx` |
+| The whole visual system | `src/app/site.css` |
 
-1. **Add Profile Content**: Implement the left column with your profile information
-2. **Add Images**: Replace placeholder images with actual project screenshots
-3. **SEO Optimization**: Add metadata and OpenGraph tags
-4. **Analytics**: Integrate Google Analytics or similar
-5. **Contact Form**: Add a contact section if needed
-6. **Blog Integration**: Consider adding a blog section
-7. **Animation**: Add subtle animations for better UX
+## Add or edit a project
 
-## 🤝 Contributing
+Add an entry to `pixioApps` or `hubProjects` in `src/data/portfolio.ts`, or to `projects` in `src/data/projects.ts`. The fields that matter:
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
+- `image`: the lead screenshot. Put files in `public/work/` as WebP, 1440 px wide or larger for web apps.
+- `gallery`: extra screenshots for the project page. Set `shape: 'portrait'` for phone screenshots and `shape: 'tablet'` for iPad screenshots so they get a device frame.
+- `platform`: `web`, `mobile`, `tablet`, `desktop` or `spatial`. This picks the frame and the label.
+- `family`: `pixio` or `tsi-hub` groups a project with its siblings on the homepage, in the archive filters and under "More from…".
+- `link`, `linkLabel`, `appStoreLink`, `googlePlayLink`, `githubLink`: every link that is set becomes a button. Apps in the Pixio and TSI Hub families link to the live product only, not to source repositories.
+- `highlights`: three or four short, factual points.
 
-## 📄 License
+The homepage sections read from `pixio`, `pixioApps`, `tsiHub`, `hubApps` and `moreWork`, all exported from `src/data/portfolio.ts`.
 
-This project is for personal use. Modify as needed for your own portfolio.
+### Links that stopped working
 
----
+The `corrections` map in `src/data/portfolio.ts` layers fixes over the original archive without rewriting it. As of 2026-11-24:
 
-Built with ❤️ using Next.js, TypeScript, and Tailwind CSS
+- AI Builders, Spaces Archive, Mindful Flutter App and TSI Quiz are marked archived because their sites or store listings no longer load.
+- AI Mastery and the Idea to Impact teaching link point to the recorded sessions on YouTube, because `ideastoimpact.online` is suspended.
+- WordPress + WooCommerce MCP points to GitHub, because its Smithery listing was removed.
+
+Remove an entry from `corrections` to restore the original link.
+
+## Open Graph images
+
+Every page has a 1200×630 share card in `public/og/`: `home.jpg` for the site and `<project id>.jpg` for each project. They are generated from the running site, so a new project gets a card without design work:
+
+```sh
+npm i -D playwright       # once
+npm run build && npm start
+node scripts/make-og-images.mjs              # in a second terminal
+node scripts/make-og-images.mjs http://localhost:3001   # if the site is on another port
+```
+
+`public/og-image.png` is a copy of `home.jpg`, kept for older links.
+
+## Publish a blog post
+
+The blog currently links to articles published on Pixio. To publish an article here, add a `BlogPost` to `src/data/posts.ts`, omit `href`, and provide `body`:
+
+```ts
+{
+  slug: 'your-post-slug',
+  title: 'Your title',
+  excerpt: 'A short introduction.',
+  date: 'YYYY-MM-DD',
+  category: 'Guides', // Guides, Product, or Community
+  published: true,
+  body: [
+    { heading: 'A section title', paragraphs: ['Your first paragraph.'] },
+  ],
+}
+```
+
+Use `published: false` for drafts. Drafts are excluded from routes, the blog index, RSS and the sitemap. RSS is served at `/feed.xml`.
+
+## Teaching and recognition
+
+The UFT section uses the owner-supplied wording: innovative curriculum in CTE, nine consecutive years, 2017–2026. Edit `teaching` in `src/data/portfolio.ts` to change it. No unverified school names, employment dates or metrics have been added. The four figures under the hero come from the owner or from each product’s own public listing; their sources are noted beside `facts` in `src/app/page.tsx`.
+
+## Screenshots
+
+- `public/work/`: Pixio app and TSI Hub screenshots. Web app captures come from each project’s own screenshot folder, phone screenshots from the Pixio AI App Store set, and iPad and Android images from the public store listings.
+- `public/screenshots/`: landing-page captures of the older web projects. `sources.json` records where each came from.
+
+## 3D avatar
+
+The interactive avatar lives at `/playground` and is linked from the footer. It is not loaded on any other page. `avatar-portrait.tsx` owns loading, fallback and controls; the dynamically imported `avatar-scene.js` owns Three.js. Run `npm run optimize:avatar` to rebuild `public/avatar/alisher.glb` from the original model and animations; `public/avatar/optimization.json` records the result.
+
+## Not in use
+
+The opening animation and the earlier homepage designs are no longer mounted or imported. Their files are still in the repository and can be deleted: `opening-sequence.tsx`, `workstation-*.js`, `terminal-timeline.js`, `screen-portal.js`, `world-hero.tsx`, `interactive-studio.tsx`, `lesson-lab.tsx`, `project-explorer.tsx`, `quick-jump.tsx` and `portfolio-carousel.tsx` in `src/components/portfolio/`; the `projects`, `media`, `effects` and `ui` component folders; `cinematic.css`, `interactive.css`, `world.css`, `odyssey.css`, `base.css` and `terminal-intro.css` in `src/app/`; and `public/room/`.

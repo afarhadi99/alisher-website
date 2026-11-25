@@ -1,0 +1,42 @@
+{
+  "capturedOn": "2026-11-04",
+  "viewport": { "width": 1440, "height": 900 },
+  "method": "Real browser capture with Hallmark capture.mjs; WebP compression with sharp",
+  "screenshots": [
+    {
+      "file": "pixio-home-desktop.webp",
+      "url": "https://pixio.myapps.ai/",
+      "redirectedTo": "https://beta.pixio.myapps.ai/"
+    },
+    {
+      "file": "ai-tutor-home-desktop.webp",
+      "url": "https://account.myapps.ai/"
+    },
+    {
+      "file": "ideas-to-impact-home-desktop.webp",
+      "url": "https://ideastoimpact.online/"
+    },
+    {
+      "file": "documentation-home-desktop.webp",
+      "url": "https://support.myapps.ai/introduction"
+    },
+    {
+      "file": "pixio-starter-home-desktop.webp",
+      "url": "https://pixio-api-starter.vercel.app/"
+    }
+  ],
+  "unavailable": [
+    {
+      "url": "https://machine.myapps.ai/",
+      "reason": "Navigation timed out; original screenshot retained"
+    },
+    {
+      "url": "https://www.spaces-archive.com/",
+      "reason": "Browser error screen; original screenshot retained"
+    },
+    {
+      "url": "https://aibuilders.dev/",
+      "reason": "Redirected to domain-sale page; project marked archived"
+    }
+  ]
+}

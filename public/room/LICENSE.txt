@@ -1,0 +1,5 @@
+Photographed PBR maps from Poly Haven, CC0 1.0.
+https://polyhaven.com/license
+https://polyhaven.com/a/wood_table_worn
+https://polyhaven.com/a/white_plaster_02
+Optimized locally to 1024px WebP. See sources.json for original map URLs.

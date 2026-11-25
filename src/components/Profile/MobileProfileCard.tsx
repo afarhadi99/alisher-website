@@ -69,9 +69,15 @@ const MobileProfileCard: React.FC = () => {
     const gltfLoader = new GLTFLoader();
     let avatar: any = null;
     await new Promise<void>((resolve) => {
-      gltfLoader.load('/model.glb', (gltf: any) => {
+      gltfLoader.load('/avatar/alisher.glb', (gltf: any) => {
         avatar = gltf.scene;
         if (avatar) {
+          const idleClip = gltf.animations?.find((clip: any) => clip.name === 'idle');
+          if (idleClip) {
+            const mixer = new THREE.AnimationMixer(avatar);
+            mixer.clipAction(idleClip).play();
+            mixer.update(0);
+          }
           avatar.visible = false;
           avatar.traverse((c: any) => {
             if (c.isMesh) {

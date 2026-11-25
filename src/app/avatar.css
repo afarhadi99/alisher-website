@@ -1,0 +1,143 @@
+/* Three.js portrait: the owner's existing model, rendered only where visible. */
+:root {
+  --avatar-key-light: #fff4e8;
+  --avatar-fill-light: #e5edff;
+  --avatar-ground-light: #b9b1a7;
+}
+.avatar-build-scene {
+  padding-top: 0;
+}
+.avatar-experience {
+  min-width: 0;
+}
+.avatar-stage-shell {
+  height: 380px;
+  position: relative;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+}
+.avatar-stage {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  inset: 0;
+}
+.avatar-stage canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+}
+.avatar-stage canvas:active {
+  cursor: grabbing;
+}
+.avatar-poster {
+  position: absolute;
+  inset: 0;
+}
+.avatar-poster img {
+  object-fit: cover;
+  object-position: center 28%;
+}
+.avatar-load-state {
+  position: absolute;
+  bottom: var(--space-md);
+  left: var(--space-md);
+  right: var(--space-md);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-paper);
+  color: var(--color-ink);
+  border-radius: 12px;
+}
+.avatar-load-state p {
+  font-size: 14px;
+}
+.avatar-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  padding-top: var(--space-sm);
+}
+.avatar-control {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xs) var(--space-sm);
+  background: transparent;
+  color: var(--color-ink);
+  border: 1px solid var(--color-ink);
+  border-radius: var(--radius-pill);
+  font-size: 14px;
+  white-space: nowrap;
+}
+.avatar-control:hover:not(:disabled) {
+  background: var(--color-paper);
+}
+.avatar-control:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.avatar-control:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.avatar-control.icon-control {
+  width: 44px;
+  padding: var(--space-xs);
+  flex-shrink: 0;
+}
+.avatar-hint {
+  margin-top: var(--space-xs);
+  font-size: 14px;
+}
+.avatar-build-scene > .text-link {
+  font-size: 16px;
+}
+.dedicated-avatar {
+  width: min(100%, 800px);
+  margin-inline: auto;
+}
+.dedicated-avatar .avatar-stage-shell {
+  height: min(60svh, 560px);
+  background: var(--color-paper-2);
+}
+.avatar-ar {
+  margin-top: var(--space-xl);
+}
+.avatar-ar summary {
+  width: fit-content;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  text-decoration: underline;
+}
+.avatar-ar > div {
+  margin-top: var(--space-lg);
+}
+@media (max-width: 40rem) {
+  .avatar-stage-shell {
+    height: 320px;
+  }
+  .avatar-toolbar {
+    gap: var(--space-xs);
+  }
+  .avatar-control {
+    font-size: 13px;
+    padding-inline: var(--space-xs);
+  }
+  .avatar-load-state {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+.avatar-more { position: relative; }
+.avatar-more summary { display: flex; align-items: center; justify-content: center; list-style: none; cursor: pointer; }
+.avatar-more summary::-webkit-details-marker { display: none; }
+.avatar-more-panel { position: absolute; z-index: 10; bottom: calc(100% + 12px); right: 0; display: flex; gap: var(--space-xs); padding: var(--space-sm); background: var(--color-paper); border: 1px solid var(--color-ink); border-radius: 12px; }
+

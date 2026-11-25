@@ -1,0 +1,442 @@
+/* Hallmark · shape: Celestial revelation · genre: atmospheric · theme: custom · signature: a sun rising over a planetary horizon */
+/* A finite, skippable entrance; the restored portfolio beneath it is unchanged. */
+:root {
+  --odyssey-space: #02040a;
+  --odyssey-world: #03050b;
+  --odyssey-edge: #152235;
+  --odyssey-white: #fff9e8;
+  --odyssey-sun: #fff2c1;
+  --odyssey-gold: #dc9853;
+  --odyssey-rule: #696e78;
+  --odyssey-control: #0a101a;
+  --odyssey-duration: 9000ms;
+}
+dialog.odyssey-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 450;
+  width: 100%;
+  height: 100%;
+  height: 100svh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  border: 0;
+  padding: 0;
+  overflow: clip;
+  background: transparent;
+  color: var(--odyssey-white);
+  pointer-events: auto;
+  --color-focus: var(--odyssey-white);
+}
+.odyssey-intro::backdrop {
+  background: transparent;
+}
+.odyssey-scene {
+  position: absolute;
+  inset: 0;
+  background: var(--odyssey-space);
+  overflow: clip;
+  isolation: isolate;
+  animation: odyssey-depart var(--odyssey-duration) linear both;
+}
+.odyssey-title {
+  position: absolute;
+  z-index: 2;
+  top: 13%;
+  left: 5%;
+  right: 5%;
+  text-align: center;
+  font-family: var(--font-display);
+  font-size: clamp(56px, 8vw, 124px);
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.065em;
+  color: var(--odyssey-white);
+  animation: odyssey-title var(--odyssey-duration) ease-out both;
+}
+.odyssey-title span {
+  display: block;
+}
+.odyssey-bloom {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse at 50% 61%,
+    color-mix(in srgb, var(--odyssey-white) 85%, transparent),
+    color-mix(in srgb, var(--odyssey-gold) 25%, transparent) 35%,
+    transparent 70%
+  );
+  pointer-events: none;
+  animation: odyssey-bloom var(--odyssey-duration) ease-in-out both;
+}
+.odyssey-controls {
+  position: absolute;
+  z-index: 3;
+  inset: auto 32px max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.odyssey-controls button {
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-md);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  border: 1px solid var(--odyssey-rule);
+  border-radius: 0;
+  color: var(--odyssey-white);
+  background: var(--odyssey-control);
+  font-size: 13px;
+  cursor: pointer;
+}
+.odyssey-controls button:hover {
+  border-color: var(--odyssey-white);
+}
+.odyssey-controls button:focus-visible {
+  outline: 2px solid var(--odyssey-white);
+  outline-offset: 5px;
+}
+@keyframes odyssey-title {
+  0%,
+  38% {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  54%,
+  78% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  96%,
+  100% {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+@keyframes odyssey-bloom {
+  0%,
+  65% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  83% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+}
+@keyframes odyssey-depart {
+  0%,
+  82% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+@media (max-width: 40rem) {
+  .odyssey-title {
+    top: 20%;
+    font-size: clamp(48px, 12vw, 72px);
+  }
+  .odyssey-controls {
+    left: 16px;
+    right: 16px;
+    gap: var(--space-sm);
+  }
+  .odyssey-controls button {
+    padding-inline: var(--space-sm);
+    font-size: 12px;
+  }
+}
+@media (max-height: 32rem) and (min-width: 40rem) {
+  .odyssey-title {
+    top: 10%;
+    font-size: 48px;
+  }
+  .odyssey-controls {
+    bottom: 16px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.odyssey-intro {
+    display: none;
+  }
+  .odyssey-scene,
+  .odyssey-title,
+  .odyssey-bloom {
+    animation: none;
+  }
+}
+
+.odyssey-sky {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  fill: var(--odyssey-white);
+}
+.odyssey-starfield {
+  animation: cosmic-stars var(--odyssey-duration) linear both;
+}
+.odyssey-solar-rise {
+  animation: cosmic-sunrise var(--odyssey-duration)
+    cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+.odyssey-atmosphere {
+  animation: cosmic-atmosphere var(--odyssey-duration) ease-in-out both;
+}
+@keyframes cosmic-stars {
+  0% {
+    opacity: 0;
+  }
+  18%,
+  65% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+@keyframes cosmic-sunrise {
+  0%,
+  10% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  24% {
+    opacity: 1;
+  }
+  62%,
+  100% {
+    opacity: 1;
+    transform: translateY(-260px);
+  }
+}
+@keyframes cosmic-atmosphere {
+  0%,
+  14% {
+    opacity: 0;
+  }
+  50%,
+  85% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .odyssey-starfield,
+  .odyssey-solar-rise,
+  .odyssey-atmosphere {
+    animation: none;
+  }
+}
+
+/* The name lands in the existing hero while the sun's light becomes its orange. */
+.odyssey-title span {
+  width: max-content;
+  max-width: 100%;
+  margin-inline: auto;
+  transform-origin: top left;
+}
+.world-name > span {
+  width: max-content;
+}
+.odyssey-wash {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  animation: cosmic-wash-fade var(--odyssey-duration) linear both;
+}
+.odyssey-light-expansion {
+  transform-origin: 800px 540px;
+  animation: cosmic-light-expansion var(--odyssey-duration)
+    cubic-bezier(0.65, 0, 0.2, 1) both;
+}
+.odyssey-title {
+  z-index: 4;
+}
+.odyssey-controls {
+  z-index: 5;
+}
+@media (min-width: 60.001rem) {
+  .odyssey-title {
+    text-transform: uppercase;
+  }
+}
+@keyframes odyssey-title {
+  0%,
+  35% {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  48%,
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes odyssey-depart {
+  0%,
+  73% {
+    opacity: 1;
+  }
+  80%,
+  100% {
+    opacity: 0;
+  }
+}
+@keyframes odyssey-bloom {
+  0%,
+  54% {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+  68% {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+  82%,
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+@keyframes cosmic-light-expansion {
+  0%,
+  67% {
+    opacity: 0;
+    transform: scale(0.1);
+  }
+  69% {
+    opacity: 1;
+  }
+  79%,
+  100% {
+    opacity: 1;
+    transform: scale(22);
+  }
+}
+@keyframes cosmic-wash-fade {
+  0%,
+  79% {
+    opacity: 1;
+  }
+  96%,
+  100% {
+    opacity: 0;
+  }
+}
+html[data-entry] .world-name {
+  opacity: 0;
+}
+html[data-entry-name="landed"] .world-name {
+  opacity: 1;
+  transition: opacity 180ms ease;
+}
+html[data-entry="preparing"] .portfolio-world .site-header,
+html[data-entry="preparing"] .world-avatar,
+html[data-entry="preparing"] .world-preview,
+html[data-entry="preparing"] .world-introduction,
+html[data-entry="preparing"] .world-aside {
+  opacity: 0;
+}
+html[data-entry="arriving"] .portfolio-world .site-header {
+  animation: cosmic-page-in 900ms 900ms both;
+}
+html[data-entry="arriving"] .world-avatar {
+  animation: cosmic-portrait-in 1500ms 400ms both;
+}
+html[data-entry="arriving"] .world-preview-one {
+  animation: cosmic-preview-left 1200ms 650ms both;
+}
+html[data-entry="arriving"] .world-preview-two {
+  animation: cosmic-preview-right 1200ms 800ms both;
+}
+html[data-entry="arriving"] .world-introduction,
+html[data-entry="arriving"] .world-aside {
+  animation: cosmic-page-in 1000ms 950ms both;
+}
+@keyframes cosmic-page-in {
+  from {
+    opacity: 0;
+    translate: 0 16px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes cosmic-portrait-in {
+  from {
+    opacity: 0;
+    translate: 0 28px;
+    scale: 0.97;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+    scale: 1;
+  }
+}
+@keyframes cosmic-preview-left {
+  from {
+    opacity: 0;
+    translate: -28px 24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes cosmic-preview-right {
+  from {
+    opacity: 0;
+    translate: 28px 24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@media (max-width: 60rem) {
+  .world-introduction h1 > span {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+  }
+  html[data-entry] .world-introduction h1 {
+    opacity: 0;
+  }
+  html[data-entry-name="landed"] .world-introduction h1 {
+    opacity: 1;
+    transition: opacity 180ms ease;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .odyssey-wash,
+  .odyssey-light-expansion,
+  html[data-entry] .portfolio-world .site-header,
+  html[data-entry] .world-avatar,
+  html[data-entry] .world-preview,
+  html[data-entry] .world-introduction,
+  html[data-entry] .world-aside {
+    animation: none;
+    opacity: 1;
+  }
+  html[data-entry] .world-name,
+  html[data-entry] .world-introduction h1 {
+    opacity: 1;
+    transition: none;
+  }
+}

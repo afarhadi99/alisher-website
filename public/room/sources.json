@@ -1,0 +1,38 @@
+[
+  {
+    "filename": "walnut-color.webp",
+    "asset": "wood_table_worn",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_worn/wood_table_worn_diff_1k.jpg",
+    "license": "CC0-1.0"
+  },
+  {
+    "filename": "walnut-roughness.webp",
+    "asset": "wood_table_worn",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_worn/wood_table_worn_rough_1k.jpg",
+    "license": "CC0-1.0"
+  },
+  {
+    "filename": "walnut-normal.webp",
+    "asset": "wood_table_worn",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_table_worn/wood_table_worn_nor_gl_1k.jpg",
+    "license": "CC0-1.0"
+  },
+  {
+    "filename": "plaster-roughness.webp",
+    "asset": "white_plaster_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_rough_1k.jpg",
+    "license": "CC0-1.0"
+  },
+  {
+    "filename": "plaster-color.webp",
+    "asset": "white_plaster_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_diff_1k.jpg",
+    "license": "CC0-1.0"
+  },
+  {
+    "filename": "plaster-normal.webp",
+    "asset": "white_plaster_02",
+    "source": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_plaster_02/white_plaster_02_nor_gl_1k.jpg",
+    "license": "CC0-1.0"
+  }
+]

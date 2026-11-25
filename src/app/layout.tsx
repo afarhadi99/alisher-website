@@ -1,119 +1,55 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
+const body = localFont({
+  src: "../../public/fonts/manrope-latin.woff2",
+  weight: "200 800",
+  variable: "--font-manrope",
+  display: "swap",
 });
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
+const description =
+  "Alisher Farhadi builds AI products and classroom software, and teaches people how to use them. See Pixio, TSI Hub, native apps and open-source tools.";
+const title = "Alisher Farhadi | AI builder and educator";
 export const metadata: Metadata = {
-  title: "Alisher Farhadi - Developer, Educator, Entrepreneur",
-  description:
-    "Alisher Farhadi is a developer, educator, and entrepreneur, and an AI enthusiast having developed several SAAS platforms and worked on online infrastructure.",
-  keywords: [
-    "Alisher Farhadi",
-    "developer",
-    "educator",
-    "entrepreneur",
-    "AI",
-    "SAAS",
-    "infrastructure",
-  ],
-  authors: [{ name: "Alisher Farhadi" }],
   metadataBase: new URL("https://www.alisher.space"),
+  title: {
+    default: title,
+    template: "%s | Alisher Farhadi",
+  },
+  description,
+  authors: [{ name: "Alisher Farhadi" }],
+  alternates: { types: { "application/rss+xml": "/feed.xml" } },
   openGraph: {
     type: "website",
-    url: "https://www.alisher.space",
-    title: "Alisher Farhadi - Developer, Educator, Entrepreneur",
-    description:
-      "Alisher Farhadi is a developer, educator, and entrepreneur, and an AI enthusiast having developed several SAAS platforms and worked on online infrastructure.",
+    locale: "en_US",
+    siteName: "Alisher Farhadi",
+    title,
+    description,
     images: [
       {
-        url: "/og-image.png", // placeholder
+        url: "/og/home.jpg",
         width: 1200,
         height: 630,
-        alt: "Alisher Farhadi",
+        alt: "Alisher Farhadi: AI builder and educator, with screenshots of Pixio and TSI Hub",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    site: "@AlisherFarhadi", // Replace with actual handle
-    creator: "@AlisherFarhadi", // Replace with actual handle
-    title: "Alisher Farhadi - Developer, Educator, Entrepreneur",
-    description:
-      "Alisher Farhadi is a developer, educator, and entrepreneur, and an AI enthusiast having developed several SAAS platforms and worked on online infrastructure.",
-    images: {
-      url: '/og-image.png',
-      alt: 'Alisher Farhadi - Developer, Educator, Entrepreneur',
-    }, // placeholder
+    creator: "@AlisherFarhadi",
+    title,
+    description,
+    images: ["/og/home.jpg"],
   },
-  icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
-  },
+  icons: { icon: "/favicon.ico", shortcut: "/favicon-16x16.png" },
 };
-
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        {/* Global SVG defs for Electric Border effect */}
-        <svg aria-hidden="true" width="0" height="0" style={{ position: "absolute" }} xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <filter id="turbulent-displace" colorInterpolationFilters="sRGB" x="-20%" y="-20%" width="140%" height="140%">
-              <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1" seed="1">
-                <animate attributeName="baseFrequency" values="0.015;0.03;0.015" dur="6s" repeatCount="indefinite" />
-              </feTurbulence>
-              <feOffset in="noise1" dx="0" dy="0" result="offsetNoise1">
-                <animate attributeName="dy" values="700; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
-              </feOffset>
-
-              <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2" seed="1">
-                <animate attributeName="baseFrequency" values="0.015;0.03;0.015" dur="6s" repeatCount="indefinite" />
-              </feTurbulence>
-              <feOffset in="noise2" dx="0" dy="0" result="offsetNoise2">
-                <animate attributeName="dy" values="0; -700" dur="6s" repeatCount="indefinite" calcMode="linear" />
-              </feOffset>
-
-              <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise1b" seed="2">
-                <animate attributeName="baseFrequency" values="0.02;0.035;0.02" dur="6s" repeatCount="indefinite" />
-              </feTurbulence>
-              <feOffset in="noise1b" dx="0" dy="0" result="offsetNoise3">
-                <animate attributeName="dx" values="490; 0" dur="6s" repeatCount="indefinite" calcMode="linear" />
-              </feOffset>
-
-              <feTurbulence type="turbulence" baseFrequency="0.02" numOctaves="10" result="noise2b" seed="2">
-                <animate attributeName="baseFrequency" values="0.02;0.035;0.02" dur="6s" repeatCount="indefinite" />
-              </feTurbulence>
-              <feOffset in="noise2b" dx="0" dy="0" result="offsetNoise4">
-                <animate attributeName="dx" values="0; -490" dur="6s" repeatCount="indefinite" calcMode="linear" />
-              </feOffset>
-
-              <feComposite in="offsetNoise1" in2="offsetNoise2" result="part1" />
-              <feComposite in="offsetNoise3" in2="offsetNoise4" result="part2" />
-              <feBlend in="part1" in2="part2" mode="color-dodge" result="combinedNoise" />
-
-              <feDisplacementMap in="SourceGraphic" in2="combinedNoise" scale="30" xChannelSelector="R" yChannelSelector="B">
-                <animate attributeName="scale" values="20;30;20" dur="6s" repeatCount="indefinite" />
-              </feDisplacementMap>
-            </filter>
-          </defs>
-        </svg>
-
-        {children}
-      </body>
+    <html lang="en" id="top" className={body.variable}>
+      <body>{children}</body>
     </html>
   );
 }

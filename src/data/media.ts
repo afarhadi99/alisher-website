@@ -19,7 +19,7 @@ export const mediaItems: MediaItem[] = [
     shortDescription: 'Ongoing educational series covering various web developer topics. Meets live every Wednesday and Thursday across livestreaming services and X.',
     longDescription: 'Ongoing educational series covering various web developer topics. Meets live every Wednesday and Thursday across livestreaming services and X.',
     image: '/idea-to-impact-season-9-300x200.webp',
-    link: 'hhttps://www.youtube.com/@aitutorxpixio/playlists',
+    link: 'https://www.youtube.com/@aitutorxpixio/playlists',
     type: 'livestream',
     platform: 'YouTube and X',
     publishedDate: new Date('2024-02-15'),

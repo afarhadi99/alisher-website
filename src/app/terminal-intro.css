@@ -1,0 +1,178 @@
+/* Hallmark · shape: After-hours workstation · genre: atmospheric · theme: custom · signature: the owner's sleeping avatar and a camera move through a CRT login */
+/* A real 3D room becomes the portfolio; portrait framing keeps the sleeper and monitor together. */
+/* Owner-directed scene: a physical computer and terminal are explicitly requested narrative subjects. */
+/* Hallmark · finish-review: subagent · 3 findings resolved: framing, terminal luminance, tower contact · Floor 0 FAIL */
+:root {
+  --terminal-night: #080b10;
+  --terminal-screen: #08100d;
+  --terminal-green: #b9e4b3;
+  --terminal-dim: #8eae98;
+  --terminal-white: #e3eddf;
+  --terminal-rule: #547363;
+  --terminal-case: #a7a38f;
+  --terminal-trim: #66685d;
+  --terminal-wood: #55402c;
+  --terminal-metal: #242528;
+  --terminal-paper: #b4aa91;
+  --terminal-amber: #ffd2a3;
+  --terminal-blue: #bdcbd8;
+  --terminal-wall: #777970;
+  --terminal-floor: #766451;
+  --terminal-key: #989589;
+  --terminal-skin: #b48c70;
+  --terminal-font: "Courier New", Courier, monospace;
+}
+dialog.terminal-intro {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  height: 100svh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  overflow: clip;
+  z-index: 450;
+  background: var(--terminal-night);
+  color: var(--terminal-white);
+  pointer-events: auto;
+  transition: opacity 1000ms cubic-bezier(0.25, 0.1, 0.25, 1);
+}
+.terminal-intro::backdrop {
+  background: transparent;
+}
+.terminal-intro[data-exiting="true"] {
+  opacity: 0;
+  pointer-events: none;
+}
+.terminal-room,
+.terminal-room canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.terminal-room {
+  opacity: 0;
+  transition: opacity 700ms ease;
+}
+.terminal-intro[data-scene="ready"] .terminal-room {
+  opacity: 1;
+}
+.terminal-vignette {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at 50% 48%,
+    transparent 35%,
+    color-mix(in srgb, var(--terminal-night) 68%, transparent)
+  );
+}
+.terminal-controls {
+  position: absolute;
+  z-index: 3;
+  left: max(24px, env(safe-area-inset-left));
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(24px, env(safe-area-inset-bottom));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+}
+.terminal-controls button {
+  display: inline-flex;
+  gap: var(--space-sm);
+  align-items: center;
+  min-height: 48px;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--terminal-rule);
+  color: var(--terminal-white);
+  background: var(--terminal-night);
+  border-radius: 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.terminal-controls button:hover {
+  border-color: var(--terminal-green);
+}
+.terminal-controls button:focus-visible {
+  outline: 2px solid var(--terminal-green);
+  outline-offset: 4px;
+}
+.terminal-fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+  padding: max(var(--space-lg), 8vw);
+  font-family: var(--terminal-font);
+  color: var(--terminal-green);
+  font-size: clamp(16px, 3.4vw, 30px);
+  line-height: 1.7;
+  background: var(--terminal-screen);
+  transition: opacity 500ms ease;
+}
+.terminal-fallback p {
+  margin: 0;
+  font: inherit;
+}
+.terminal-fallback .terminal-address {
+  color: var(--terminal-dim);
+  margin-bottom: var(--space-xl);
+}
+.terminal-intro[data-scene="ready"] .terminal-fallback {
+  opacity: 0;
+  pointer-events: none;
+}
+.terminal-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 1em;
+  background: currentColor;
+  vertical-align: -0.1em;
+}
+@media (pointer: coarse), (max-width: 40rem) {
+  .terminal-controls .terminal-skip {
+    display: none;
+  }
+  .terminal-controls {
+    left: 16px;
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .terminal-controls button {
+    font-size: 12px;
+  }
+}
+/* Keep the established hero's mobile name wrap after removing the cosmic CSS. */
+@media (max-width: 60rem) {
+  .world-introduction h1 > span {
+    display: block;
+    width: max-content;
+    max-width: 100%;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  dialog.terminal-intro,
+  .terminal-room,
+  .terminal-fallback {
+    transition: none;
+  }
+}
+
+/* The live page is visible through a projected hole in the room canvas. */
+.terminal-intro[data-portal="true"] {
+  background: transparent;
+}
+.terminal-intro[data-portal="true"] .terminal-controls {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 250ms ease;
+}
+.terminal-intro[data-portal="true"] .terminal-fallback {
+  visibility: hidden;
+}
